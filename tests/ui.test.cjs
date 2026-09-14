@@ -50,6 +50,23 @@ test('workspace has activity, conversations, tabs, pause and reported-usage dist
   for(const label of ['Activity Feed','All Chats','OPEN TABS','Pause all','Unknown coverage'])assert(html.includes(label),label);
   assert(html.includes('Build &lt;parser&gt;'));
 });
+test('channels lists every room with the two coordination rooms pinned first',()=>{
+  run(`state.rooms={
+    agent_chat:{id:'agent_chat',name:'agent_chat',kind:'global',members:[]},
+    zeta:{id:'zeta',name:'Zeta planning',kind:'group',members:[]},
+    agent_scratch:{id:'agent_scratch',name:'agent_scratch',kind:'scratch',members:[]},
+    alpha:{id:'alpha',name:'Alpha review',kind:'group',members:[]}
+  };view='activity'`);
+  node('.sidebar-bottom').innerHTML='';
+  run(`render()`);
+  const pinned=node('#app').innerHTML,additional=node('.sidebar-bottom').innerHTML;
+  assert(pinned.indexOf('data-view="room:agent_chat"')<pinned.indexOf('data-view="room:agent_scratch"'));
+  assert(additional.includes('data-view="room:alpha"'));
+  assert(additional.includes('data-view="room:zeta"'));
+  assert(additional.indexOf('Alpha review')<additional.indexOf('Zeta planning'));
+  assert(!additional.includes('room:agent_chat'));
+  assert(!additional.includes('room:agent_scratch'));
+});
 test('unread chat counts appear in the activity navigation and open tabs',()=>{
   run(`state.unread={agent_chat:{count:3,latest_seq:8}};tabs=['room:agent_chat'];render()`);
   const html=node('#app').innerHTML;
