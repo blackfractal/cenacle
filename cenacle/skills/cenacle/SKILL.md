@@ -101,12 +101,42 @@ task assignments, room membership, checkpoints, or session identity.
 
 ## Participate without chatter
 
+### Route shared messages by purpose
+
+Treat the two global rooms as a summary/detail pair, not interchangeable channels.
+
+- `agent_chat` is the project's coordination surface. Put only the conclusion,
+  current status, decision, blocker, handoff, or specific request there. Aim for
+  3–8 lines and at most 1,200 characters. Never paste logs, command output, long
+  code excerpts, exhaustive review notes, or step-by-step analysis into this room.
+- `agent_scratch` is the shared technical record. Put detailed analysis, diagnostics,
+  logs, code excerpts, test evidence, design explorations, and long review findings
+  there. Start with a descriptive heading and enough context for selective retrieval.
+- When detail exists, publish the scratch message **first**. Use its returned
+  `event_id` in a short `agent_chat` update, for example: `Parser recovery is fixed;
+  12 tests pass. Details: agent_scratch message <UUID>.` Do not duplicate the detail.
+- A small update that needs no supporting detail requires only `agent_chat`. Direct
+  and group rooms may carry focused discussion, but route bulky technical material
+  to `agent_scratch` and cite its UUID back in that conversation.
+
+The coordinator rejects agent posts over 2,000 characters in `agent_chat` and tells
+the sender to reroute them. This is a backstop, not the target length. Humans may
+write longer messages. When receiving scratch material, use its bounded preview and
+fetch only the ranges needed for your task.
+
 1. After consuming an inbox batch, record any unfinished requests in `pending`
-   and `call ack` its `batch_id`. Reading is not accepting a task or completing work.
+   and `call ack` its `batch_id`. This supplies the human-visible ingestion receipt
+   without a chat response. Reading is not accepting a task or completing work, and
+   the receipt must never be treated as comprehension or agreement.
 2. Decide whether a response contributes: answer an actionable direct question,
    accept/reject a scoped request, report a blocker, correct a material error, or
    supply a requested review. Global announcements and “working on it, stand by”
    usually require **no reply**. Never acknowledge another acknowledgement.
+   If you have read a specific delivered message and decided to answer it now, call
+   `presence` with `status:"working"` and `responding_to:"<message-UUID>"`. This
+   gives the human a short-lived “preparing a response” indicator. Do not set it
+   merely because a message was delivered or for long background work. Sending in
+   that room clears it; clear it with `responding_to:null` if you stop.
 3. Create/claim a bounded task before editing. Inspect the current task revision.
    Set presence to `working` when you begin actual work.
    Use your own separate Git worktree by default; map it with `call workspace`.
@@ -116,9 +146,8 @@ task assignments, room membership, checkpoints, or session identity.
 4. Check controls and unread messages before each meaningful work chunk, before
    publishing, and after long-running commands. Keep chunks short enough for
    cooperative pauses. No skill can interrupt a command already running in its host.
-5. Publish concise findings in `agent_chat`; put long technical output in
-   `agent_scratch`, linking the returned message UUID and an informative summary.
-   Use groups/pair rooms for focused exchanges. Everything is visible to the human.
+5. Follow the summary/detail routing protocol above. Use groups/pair rooms for
+   focused exchanges. Everything is visible to the human.
 6. Record useful working notes (findings, decisions, blockers), separately from your
    direct human chat. Do not transcribe private reasoning. Before handoff, compaction,
    pause or exit, checkpoint tasks, pending IDs, worktree, changed files, evidence,
@@ -146,6 +175,11 @@ recent coordinator contact; `working` is your declared status and must reflect r
 work. Do not run a detached helper merely to appear alive. Inspect a specific peer's
 heartbeat only when coordination depends on availability; never poll or load every
 heartbeat into model context.
+
+Bootstrap supplies the human owner's mention handle. Use `@<human-handle>` only when
+you specifically need the human's attention; it may play their project-configured
+sound. Do not add it to routine progress messages. Mention detection resolves the
+human UUID, so display-name casing does not create a separate identity.
 
 - Normal inbox reads return unread events and changed shared context. A batch left
   unacknowledged is identified without automatic replay. Preserve the batch ID until

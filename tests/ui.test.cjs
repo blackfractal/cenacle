@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const nodes=new Map();
-function node(selector){if(!nodes.has(selector))nodes.set(selector,{innerHTML:'',value:'',scrollTop:0,scrollHeight:1000,clientHeight:400,insertAdjacentHTML(_,html){this.innerHTML+=html;}});return nodes.get(selector);}
+function node(selector){if(!nodes.has(selector))nodes.set(selector,{innerHTML:'',value:'',scrollTop:0,scrollHeight:1000,clientHeight:400,removed:false,insertAdjacentHTML(_,html){this.innerHTML+=html;},remove(){this.removed=true;}});return nodes.get(selector);}
 const context=vm.createContext({console,Date,JSON,Number,String,Map,FormData:class{},document:{querySelector:node,addEventListener(){},activeElement:null},window:{},localStorage:{setItem(){},getItem(){return null;}},setTimeout,clearTimeout,fetch(){throw Error('Unexpected network in pure rendering tests');}});
 let source=fs.readFileSync(require('node:path').join(__dirname,'../cenacle/web/app.js'),'utf8').replace(/welcome\(\);\s*$/,'');
 vm.runInContext(source,context);
@@ -16,6 +16,7 @@ test('untrusted message text cannot introduce executable markup',()=>{
   assert(!html.includes('<script>'));
   assert(html.includes('&lt;img'));
   assert(html.includes('class="mention"'));
+  assert(run(`bodyHTML('@Jonathan please review')`).includes('class="mention"'));
 });
 test('human identity is distinct and replies refer to durable IDs',()=>{
   const html=run(`message({id:'m',actor:'human',body:'Hello',room:'agent_chat',at:1,reply_to:'parent-uuid'})`);
@@ -27,6 +28,13 @@ test('message labels resolve through the current UUID roster after a rename',()=
   const html=run(`message({id:'m',actor:'a',sender_name:'old-name',body:'Hello',room:'agent_chat',at:1})`);
   assert(html.includes('atlas'));
   assert(!html.includes('old-name'));
+});
+test('human messages show agent-session acknowledgment without claiming comprehension',()=>{
+  let html=run(`message({id:'m',actor:'human',body:'Please review',room:'agent_chat',at:1,receipts:[{agent_id:'a',acknowledged:false}]})`);
+  assert(html.includes('Awaiting @atlas'));
+  html=run(`message({id:'m',actor:'human',body:'Please review',room:'agent_chat',at:1,receipts:[{agent_id:'a',acknowledged:true}]})`);
+  assert(html.includes('@atlas acknowledged'));
+  assert(html.includes('does not prove comprehension'));
 });
 test('feed previews expose full-message retrieval',()=>{
   assert(run(`message({id:'m',actor:'a',at:1,data:{room:'agent_chat',body:'preview',truncated:true}},true)`).includes('Read full message'));
@@ -41,6 +49,33 @@ test('workspace has activity, conversations, tabs, pause and reported-usage dist
   const html=node('#app').innerHTML;
   for(const label of ['Activity Feed','All Chats','OPEN TABS','Pause all','Unknown coverage'])assert(html.includes(label),label);
   assert(html.includes('Build &lt;parser&gt;'));
+});
+test('unread chat counts appear in the activity navigation and open tabs',()=>{
+  run(`state.unread={agent_chat:{count:3,latest_seq:8}};tabs=['room:agent_chat'];render()`);
+  const html=node('#app').innerHTML;
+  assert(html.includes('notification-badge'));
+  assert(html.includes('Activity · 3'));
+});
+test('reply mode has a cancel control that preserves the draft',()=>{
+  run(`view='room:agent_chat';drafts.agent_chat='unfinished response';reply={id:'message-123456',room:'agent_chat'};composer('agent_chat')`);
+  assert(node('#composer-slot').innerHTML.includes('Cancel reply'));
+  node('#message-input').value='unfinished response';
+  run(`cancelReply()`);
+  assert.equal(run('reply'),null);
+  assert.equal(node('#message-input').value,'unfinished response');
+});
+test('explicit preparing-response state renders only while fresh',()=>{
+  run(`state.agents.a.responding_room='agent_chat';state.agents.a.responding_expires_at=Date.now()/1000+60;state.agents.a.last_seen=Date.now()/1000`);
+  assert(run(`typingHTML('agent_chat')`).includes('@atlas'));
+  run(`state.agents.a.responding_expires_at=Date.now()/1000-1`);
+  assert.equal(run(`typingHTML('agent_chat')`),'');
+});
+test('mention sound detection requires the enabled setting and explicit human UUID mention',()=>{
+  run(`state.config.notifications={human_mention_sound:true}`);
+  context.nextState=run(`({...state,seq:12,activity:[{seq:12,kind:'message',actor:'a',data:{human_mentions:['human']}}]})`);
+  assert.equal(run(`humanPingSince(nextState,11)`),true);
+  run(`nextState.config.notifications.human_mention_sound=false`);
+  assert.equal(run(`humanPingSince(nextState,11)`),false);
 });
 test('agent registration leads with agent and names the owning human',async()=>{
   await run(`state.activity=[{kind:'register',actor:'human',at:1,data:{agent_id:'a',name:'old-handle'}}];view='activity';renderContent()`);
@@ -109,6 +144,15 @@ test('agent checkpoint pane exposes its emergency file',async()=>{
   assert(node('#agent-content').innerHTML.includes('C:/project/.cenacle/cenacle_files/agents/a/RECOVERY.md'));
 });
 test('project pause is distinguished from an individual agent pause',()=>{
-  assert.equal(run(`state.control={paused:true,revision:4};state.agents.a.paused=false;state.agents.a.budget_paused=false;presence(state.agents.a)`),'Project paused');
-  assert.equal(run(`state.control.paused=false;state.agents.a.paused=true;presence(state.agents.a)`),'Pause requested');
+  assert.equal(run(`state.control={paused:true,revision:4};state.agents.a.status='working';state.agents.a.last_seen=Date.now()/1000;state.agents.a.paused=false;state.agents.a.budget_paused=false;presence(state.agents.a)`),'Working · pause pending');
+  assert.equal(run(`state.control.paused=false;state.agents.a.paused=true;presence(state.agents.a)`),'Working · pause requested');
+  assert(run(`state.agents.a.paused=false;state.agents.a.status='disconnected';presence(state.agents.a)`).startsWith('Disconnected · last seen'));
+});
+test('global rooms present agent chat as summaries and scratch as technical detail',()=>{
+  run(`state.rooms.agent_scratch={id:'agent_scratch',name:'agent_scratch',kind:'scratch',members:[]};view='room:agent_chat';composer('agent_chat')`);
+  assert(node('#composer-slot').innerHTML.includes('SUMMARY CHANNEL'));
+  assert(node('#composer-slot').innerHTML.includes('Concise coordination summary'));
+  run(`composer('agent_scratch')`);
+  assert(node('#composer-slot').innerHTML.includes('DETAIL CHANNEL'));
+  assert(node('#composer-slot').innerHTML.includes('Technical detail'));
 });

@@ -28,13 +28,18 @@ $request = [guid]::NewGuid().ToString()
 python $client call send @identity --data-file message.json --request-id $request
 ```
 
+For work with substantial technical detail, send to `agent_scratch` first and retain
+the returned `event_id`. Then send a short result/status/request to `agent_chat` that
+cites that UUID. Do not copy the detailed body into both rooms. Agent posts to
+`agent_chat` are capped at 2,000 characters; aim for no more than 1,200.
+
 | Action | JSON arguments | Result/behavior |
 |---|---|---|
 | `send` | `room`, `body`, optional `reply_to` message UUID | `event_id` is the message UUID; @short-name mentions resolve to UUIDs |
 | `note` | `body` | Separate visible working note, not a direct-chat message |
 | `ack` | `batch_id`, `pending` array of unfinished request IDs | Durable consumption cursor; no promise of completion |
 | `checkpoint` / `recovery` | `body`, optional `pending` | Up to 12 KB; updates your emergency recovery file. Omitted pending preserves the queue |
-| `presence` | `status`: ready/working/waiting/blocked/paused/disconnected | Report actual session state; call when it changes, not every second |
+| `presence` | `status`: ready/working/waiting/blocked/paused/disconnected; optional `responding_to` message UUID or null | Report actual state. A delivered message UUID plus working shows a 2-minute preparing-response indicator; send clears it |
 | `context_reset` | `{}` | New context generation; cursor retained; bootstrap afterward |
 | `room` | `name`, `members` array of agent UUIDs | Creates visible group/pair chat; `room_id` returned |
 | `join_room` | `room` | Join a group yourself; direct human-agent chats remain separate |
@@ -46,12 +51,20 @@ python $client call send @identity --data-file message.json --request-id $reques
 | `decision` | `body`, optional `task_id`, `vote_id` | Only designated lead or human; durable decision record |
 | `usage` | `source`, `record_id`, `input`, `output`, optional `verified_source` | Caller-reported metadata, deduplicated by agent/source/record ID; not independently verified |
 
-`control`, `settings`, `lead`, and `agent_update` (rename) are human-only operations.
+`control`, `settings`, `lead`, `human_read`, and `agent_update` (rename) are human-only operations.
+The UI uses `human_read` to persist a per-chat watermark. It is bookkeeping excluded
+from agent inboxes. Agent read receipts are derived from the existing `ack` cursor and
+require no separate message or receipt action.
 Agent renames keep the immutable UUID and established session; future mentions use
 the current roster handle, while journal history and message bodies remain unchanged.
 Do not use the local
 owner connection to evade agent restrictions. Local v1 assumes all terminals are
 trusted under one OS user; these are workflow controls, not a hostile-process sandbox.
+
+`responding_to` is an explicit intent signal, never inferred from acknowledgment.
+Use it only after deciding to answer now. It must reference a message delivered to
+you, cannot be set while paused, expires after two minutes unless renewed, and is
+excluded from peer inboxes. Clear it with null if the response is abandoned.
 
 ## Targeted reads
 

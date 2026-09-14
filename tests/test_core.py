@@ -257,6 +257,18 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(body[100:400], part["body"])
         self.assertTrue(self.p.fetch(self.a["credential"], msg["event_id"], 100, 300)["repeated_range"])
 
+    def test_bootstrap_teaches_summary_detail_routing_and_agents_cannot_dump_in_chat(self):
+        boot = self.p.inbox(self.a["credential"], bootstrap=True)
+        self.assertIn("Coordination only", boot["room_guidance"]["agent_chat"])
+        self.assertIn("Technical detail", boot["room_guidance"]["agent_scratch"])
+        self.call("ack", {"batch_id": boot["batch_id"]})
+        with self.assertRaisesRegex(Problem, "agent_scratch"):
+            self.call("send", {"room": "agent_chat", "body": "x" * 2001})
+        detailed = self.call("send", {"room": "agent_scratch", "body": "x" * 2001})
+        self.assertTrue(detailed["event_id"])
+        human = self.p.command("send", {"room": "agent_chat", "body": "y" * 2001}, human=True)
+        self.assertTrue(human["event_id"])
+
     def test_twenty_agents_and_bounded_paging(self):
         for i in range(18):
             self.p.command("register", {"handle": "agent"+str(i)}, human=True)
@@ -331,6 +343,44 @@ class StoreTests(unittest.TestCase):
         receipt = self.p.history(room=self.a["direct_room"])[-1]["receipts"]
         self.assertEqual([{"agent_id": self.a["agent_id"], "acknowledged": True}], receipt)
         self.assertFalse(any(e["kind"] == "receipt" for e in self.p.events))
+
+    def test_preparing_response_is_explicit_short_lived_and_clears_on_send(self):
+        incoming = self.p.command("send", {"room": self.a["direct_room"], "body": "Can you answer this?"}, human=True)
+        before = len(self.p.events)
+        self.call("presence", {"status": "working", "responding_to": incoming["event_id"]})
+        agent = self.p.state["agents"][self.a["agent_id"]]
+        self.assertEqual(incoming["event_id"], agent["responding_to"])
+        self.assertEqual(self.a["direct_room"], agent["responding_room"])
+        self.assertEqual(self.now + 120, agent["responding_expires_at"])
+        self.assertTrue(self.p.has_updates(before))
+        self.assertFalse(self.p.has_updates(before, self.b["agent_id"]))
+        heartbeat = json.loads((self.p.files / "agents" / self.a["agent_id"] / "HEARTBEAT.json").read_text("utf-8"))
+        self.assertEqual(incoming["event_id"], heartbeat["responding_to"])
+        self.call("send", {"room": self.a["direct_room"], "body": "Here is the answer."})
+        self.assertNotIn("responding_to", self.p.state["agents"][self.a["agent_id"]])
+
+    def test_preparing_response_rejects_unrelated_messages_and_pauses(self):
+        unrelated = self.p.command("send", {"room": self.b["direct_room"], "body": "For reviewer"}, human=True)
+        with self.assertRaises(Problem):
+            self.call("presence", {"status": "working", "responding_to": unrelated["event_id"]})
+        incoming = self.p.command("send", {"room": self.a["direct_room"], "body": "For builder"}, human=True)
+        self.p.command("control", {"paused": True}, human=True)
+        with self.assertRaises(Problem):
+            self.call("presence", {"status": "working", "responding_to": incoming["event_id"]})
+
+    def test_human_mentions_are_uuid_resolved_and_sound_setting_is_project_scoped(self):
+        human = self.p.human_id()
+        self.assertFalse(self.p.state["config"]["notifications"]["human_mention_sound"])
+        self.p.command("settings", {"notifications": {"human_mention_sound": True}}, human=True)
+        result = self.call("send", {"room": "agent_chat", "body": "@Jonathan I need your decision"})
+        event = self.p.events[result["seq"] - 1]
+        self.assertEqual([human], event["data"]["human_mentions"])
+        self.assertTrue(self.p.state["config"]["notifications"]["human_mention_sound"])
+        out = self.p.inbox(self.b["credential"], bootstrap=True)
+        delivered = next(e for e in out["messages"] if e["id"] == result["event_id"])
+        self.assertNotIn("human_mentions", delivered["data"])
+        with self.assertRaises(Problem):
+            self.p.command("settings", {"notifications": {"human_mention_sound": "yes"}}, human=True)
 
     def test_unrelated_pair_chat_and_notes_do_not_wake_other_agents(self):
         room = self.p.command("room", {"name": "Review", "members": [self.b["agent_id"]]}, human=True)["room_id"]

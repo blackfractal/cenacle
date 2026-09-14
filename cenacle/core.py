@@ -23,7 +23,12 @@ DEFAULT_POLICY = {"agent_inactivity_minutes": 60, "working_status_interval_minut
                   "working_status_lead_minutes": 5, "max_unanswered_followups_per_request": 1,
                   "max_transport_retries": 3, "token_budget": None, "inbox_max_bytes": 16000,
                   "coordination_mode": "worktrees"}
+DEFAULT_NOTIFICATIONS = {"human_mention_sound": False}
 COLLECTIONS = ("agents", "rooms", "tasks", "votes", "sessions", "decisions", "usage", "reads")
+ROOM_GUIDANCE = {
+    "agent_chat": "Coordination only: concise status, conclusions, decisions, blockers, and requests. Put technical detail in agent_scratch and cite its message UUID.",
+    "agent_scratch": "Technical detail: analysis, logs, code excerpts, test output, and review evidence. Publish here first, then summarize and cite this message UUID in agent_chat.",
+}
 
 
 class Problem(Exception):
@@ -64,6 +69,11 @@ def text(value, label="text", limit=100000):
     return value.strip()
 
 
+def handle_from_name(value):
+    handle = re.sub(r"[^a-z0-9_-]+", "-", str(value).strip().lower()).strip("-_")[:24]
+    return handle if re.fullmatch(r"[a-z][a-z0-9_-]{0,23}", handle or "") else "human"
+
+
 def number(value, label, low=0, high=10000000):
     if isinstance(value, bool) or not isinstance(value, (float, int)) or not math.isfinite(value) or not low <= value <= high:
         raise Problem(f"{label} must be a number between {low} and {high}")
@@ -87,6 +97,15 @@ def validate_config(config):
         raise Problem("project.id must be a UUID")
     if not config.get("humans") or len(config["humans"]) != 1:
         raise Problem("Version 1 requires exactly one human owner")
+    for human in config["humans"]:
+        handle = human.get("handle", handle_from_name(human.get("name", "human")))
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,23}", handle):
+            raise Problem("Human mention handles use lowercase letters, digits, underscores or hyphens")
+    notifications = config.get("notifications", DEFAULT_NOTIFICATIONS)
+    if not isinstance(notifications, dict) or set(notifications) - set(DEFAULT_NOTIFICATIONS):
+        raise Problem("Unknown notification setting")
+    if not isinstance(notifications.get("human_mention_sound", False), bool):
+        raise Problem("human_mention_sound must be true or false")
     policy = config.get("policy", {})
     for key in ("agent_inactivity_minutes", "working_status_interval_minutes"):
         number(policy.get(key), key, 1, 10080)
@@ -159,6 +178,7 @@ class Project:
                 initial = {k: {} for k in COLLECTIONS}
                 initial["config"] = config
                 initial["control"] = {"paused": True, "reason": "Project ready. Start when the goal is authorized.", "revision": 1}
+                initial["reads"][config["humans"][0]["id"]] = {"participant_id": config["humans"][0]["id"], "rooms": {}}
                 for room in ("agent_chat", "agent_scratch"):
                     initial["rooms"][room] = {"id": room, "name": room, "kind": "global" if room == "agent_chat" else "scratch", "members": [], "created_at": clock()}
                 self._commit("project_created", config["humans"][0]["id"], {"name": config["project"]["name"]}, initial)
@@ -169,6 +189,7 @@ class Project:
                 known = self.state["config"]
                 safe = copy.deepcopy(known)
                 safe["policy"] = config["policy"]
+                safe["notifications"] = config.get("notifications", safe.get("notifications", copy.deepcopy(DEFAULT_NOTIFICATIONS)))
                 safe["general_context"] = config.get("general_context", "")
                 for key in ("name", "goal", "workspace", "reference"):
                     if key in config["project"]:
@@ -178,6 +199,16 @@ class Project:
                     s["config"] = safe
                     s["control"] = {"paused": True, "reason": "Configuration changed; review and resume", "revision": s["control"]["revision"] + 1}
                     self._commit("settings_updated", known["humans"][0]["id"], {}, s)
+            human_id = self.human_id()
+            if human_id not in self.state["reads"]:
+                # First upgrade from a journal created before human read tracking.
+                # Existing messages were already visible in the old UI, so establish
+                # a baseline rather than presenting all history as newly unread.
+                s = copy.deepcopy(self.state)
+                s["reads"][human_id] = {"participant_id": human_id, "rooms": {
+                    rid: max((m["seq"] for m in self.messages if m["room"] == rid), default=0)
+                    for rid in s["rooms"]}}
+                self._commit("human_read_baseline", human_id, {"room_count": len(s["rooms"])}, s)
             self._project_config()
             self.rebuild_transcripts()
             self._project_entities(self.state)
@@ -198,9 +229,10 @@ class Project:
         work = Path(workspace).expanduser().resolve()
         if work == root or not work.is_dir():
             raise Problem("Choose an existing code/workspace folder. Keep coordination in its own subfolder, such as <workspace>/.cenacle.")
+        human_name = text(human, "human name", 80)
         config = {"schema_version": 1, "project": {"id": uid(), "name": name, "goal": goal, "workspace": str(work), "reference": reference},
-                  "humans": [{"id": uid(), "name": text(human, "human name", 80)}], "general_context": general_context,
-                  "agents": [], "lead_agent_id": None, "policy": copy.deepcopy(DEFAULT_POLICY)}
+                  "humans": [{"id": uid(), "name": human_name, "handle": handle_from_name(human_name)}], "general_context": general_context,
+                  "agents": [], "lead_agent_id": None, "policy": copy.deepcopy(DEFAULT_POLICY), "notifications": copy.deepcopy(DEFAULT_NOTIFICATIONS)}
         validate_config(config)
         (root / "cenacle_files" / "journal").mkdir(parents=True)
         atomic(root / "cenacle.json", config)
@@ -276,6 +308,8 @@ class Project:
                 "status": agent.get("status", "disconnected"), "last_seen": last_seen,
                 "heartbeat_interval_seconds": 60, "fresh_for_seconds": 120,
                 "paused": bool(agent.get("paused")), "budget_paused": bool(agent.get("budget_paused")),
+                "responding_to": agent.get("responding_to"), "responding_room": agent.get("responding_room"),
+                "responding_expires_at": agent.get("responding_expires_at"),
                 "meaning": "Recent coordinator contact; status is agent-declared and is not proof that work continues."}
 
     def set_recovery_home(self, location):
@@ -434,15 +468,19 @@ class Project:
                 rid = args.get("room", "agent_chat")
                 if rid not in s["rooms"]:
                     raise Problem("Unknown chat", 404)
+                if agent and action == "send" and rid == "agent_chat" and len(body) > 2000:
+                    raise Problem("agent_chat is limited to 2000 characters for agent summaries. Publish technical detail in agent_scratch, then send a concise agent_chat summary citing the scratch message UUID.")
                 if agent and s["rooms"][rid]["kind"] not in ("global", "scratch") and actor not in s["rooms"][rid]["members"]:
                     raise Problem("Join the room before posting", 403)
                 if args.get("reply_to") is not None and not any(m["id"] == args["reply_to"] and m["room"] == rid and m["kind"] == "message" for m in self.messages):
                     raise Problem("Reply must reference an existing message in this chat")
                 mentions = [a["id"] for a in s["agents"].values() if re.search(r"(?<!\w)@" + re.escape(a["handle"]) + r"(?![\w-])", body)]
+                human_mentions = [h["id"] for h in s["config"]["humans"] if re.search(
+                    r"(?<!\w)@" + re.escape(h.get("handle", handle_from_name(h["name"]))) + r"(?![\w-])", body, re.IGNORECASE)]
                 recipients = [] if action == "note" else [a["id"] for a in s["agents"].values() if a["id"] != actor and
                               (s["rooms"][rid]["kind"] in ("global", "scratch") or a["id"] in mentions or
                                (s["rooms"][rid]["kind"] in ("direct", "group") and a["id"] in s["rooms"][rid]["members"]))]
-                data = {"body": body, "room": rid, "mentions": mentions, "reply_to": args.get("reply_to"),
+                data = {"body": body, "room": rid, "mentions": mentions, "human_mentions": human_mentions, "reply_to": args.get("reply_to"),
                         "recipients": recipients, "sender_name": agent["handle"] if agent else s["config"]["humans"][0]["name"], "human": human}
                 if action == "note":
                     if not agent:
@@ -456,6 +494,9 @@ class Project:
                             s["agents"][aid]["last_incoming"] = now
                     if agent:
                         agent["last_report"] = now
+                        if agent.get("responding_room") == rid:
+                            for key_name in ("responding_to", "responding_room", "responding_since", "responding_expires_at"):
+                                agent.pop(key_name, None)
             elif action == "human_read":
                 rid = args.get("room")
                 if rid not in s["rooms"]:
@@ -509,6 +550,15 @@ class Project:
                     if k not in DEFAULT_POLICY:
                         raise Problem("Unknown policy: " + k)
                     s["config"]["policy"][k] = v
+                if "notifications" in args:
+                    notifications = args["notifications"]
+                    if not isinstance(notifications, dict):
+                        raise Problem("notifications must be an object")
+                    current = s["config"].setdefault("notifications", copy.deepcopy(DEFAULT_NOTIFICATIONS))
+                    for k, v in notifications.items():
+                        if k not in DEFAULT_NOTIFICATIONS:
+                            raise Problem("Unknown notification setting: " + k)
+                        current[k] = v
                 validate_config(s["config"])
                 budget = s["config"]["policy"]["token_budget"]
                 for a in s["agents"].values():
@@ -525,10 +575,28 @@ class Project:
                     agent["checkpoint_at"] = now
                     agent["checkpoint_revision"] = agent.get("checkpoint_revision", 0) + 1
                 elif action == "presence":
-                    status = args.get("status", "waiting")
+                    status = args.get("status", agent.get("status", "waiting"))
                     if status not in ("working", "waiting", "blocked", "paused", "disconnected", "ready"):
                         raise Problem("Invalid agent status")
                     agent["status"] = status
+                    if "responding_to" in args:
+                        message_id = args.get("responding_to")
+                        if message_id is None:
+                            for key_name in ("responding_to", "responding_room", "responding_since", "responding_expires_at"):
+                                agent.pop(key_name, None)
+                        else:
+                            if s["control"]["paused"] or agent.get("paused") or agent.get("budget_paused"):
+                                raise Problem("Cannot prepare a response while paused", 409)
+                            message = next((m for m in self.messages if m["id"] == message_id and m["kind"] == "message"), None)
+                            if not message or actor not in self._message_recipients(message):
+                                raise Problem("Responding indicator must reference a message delivered to this agent")
+                            if status != "working":
+                                raise Problem("Set status working while preparing a response")
+                            agent.update(responding_to=message_id, responding_room=message["room"], responding_since=now,
+                                         responding_expires_at=now + 120)
+                    elif status in ("waiting", "blocked", "paused", "disconnected", "ready"):
+                        for key_name in ("responding_to", "responding_room", "responding_since", "responding_expires_at"):
+                            agent.pop(key_name, None)
                     if status == "paused":
                         agent["pause_ack_revision"] = s["control"]["revision"]
                         agent["pause_ack_agent_revision"] = agent.get("pause_revision", 0)
@@ -686,12 +754,14 @@ class Project:
             s["unread"] = {rid: {"count": len(rows), "latest_seq": max((m["seq"] for m in rows), default=read_rooms.get(rid, 0))}
                            for rid in s["rooms"]
                            for rows in [[m for m in self.messages if m["room"] == rid and m["actor"] != self.human_id() and m["seq"] > read_rooms.get(rid, 0)]]}
-            s["activity"] = [self.public_event(e) for e in self.events if e["kind"] not in ("ack", "inbox", "history_read", "human_read", "presence", "checkpoint", "context_reset", "usage")][-150:]
+            s["activity"] = [self.public_event(e) for e in self.events if e["kind"] not in ("ack", "inbox", "history_read", "human_read", "human_read_baseline", "presence", "checkpoint", "context_reset", "usage")][-150:]
             return s
 
     def has_updates(self, after, actor=None):
         """Bookkeeping must not wake agents into an empty-read/ack feedback loop."""
-        ignored = {"ack", "inbox", "history_read", "human_read", "presence", "checkpoint", "context_reset", "usage"}
+        ignored = {"ack", "inbox", "history_read", "human_read", "human_read_baseline", "checkpoint", "context_reset", "usage"}
+        if actor is not None:
+            ignored.add("presence")
         for e in self.events[max(0, after):]:
             if e["kind"] in ignored or actor is not None and e["actor"] == actor:
                 continue
@@ -766,6 +836,7 @@ class Project:
                 out["policy"] = policy
                 out["lead_agent_id"] = self.state["config"].get("lead_agent_id")
                 out["roster"] = copy.deepcopy(self.state["config"].get("agents", []))
+                out["humans"] = [{**h, "handle": h.get("handle", handle_from_name(h["name"]))} for h in self.state["config"]["humans"]]
             if bootstrap or session.get("known_rooms") != room_revision:
                 out["rooms"] = [{k: r[k] for k in ("id", "name", "kind", "members")} for r in self.state["rooms"].values() if r["id"] in room_ids]
                 out["room_count"] = len(room_ids)
@@ -773,6 +844,7 @@ class Project:
                 out["identity"] = {k: a[k] for k in ("id", "handle", "role", "workspace", "checkpoint", "pending", "direct_room")}
                 out["tasks"] = [t for t in self.state["tasks"].values() if t["owner"] == actor]
                 out["open_votes"] = [v for v in self.state["votes"].values() if v["status"] == "open" and actor in v["electorate"] and actor not in v["ballots"]]
+                out["room_guidance"] = copy.deepcopy(ROOM_GUIDANCE)
             # Never silently omit required shared context. Request an explicit larger
             # bootstrap if it will not fit; messages remain independently paginated.
             if len(encoded(out)) + 700 > limit:
@@ -782,6 +854,7 @@ class Project:
                 relevant = (e["kind"] == "message" and e["actor"] != actor and (e["data"].get("room") in room_ids or actor in e["data"].get("mentions", []))) or e["kind"] in ("vote", "ballot", "votes_closed", "decision", "task", "task_update", "lead", "room", "register", "agent_update")
                 if relevant:
                     item = self.public_event(e)
+                    item.get("data", {}).pop("human_mentions", None)
                     if e["kind"] == "message":
                         body = e["data"]["body"]
                         maximum = 700 if e["data"]["room"] == "agent_scratch" else 2500

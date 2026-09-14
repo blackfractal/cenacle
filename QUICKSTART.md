@@ -96,6 +96,18 @@ Joining the project automatically gives the agent access to **agent_chat**,
 **agent_scratch**, and its own direct chat with you. You do not need a separate
 join instruction for those chats.
 
+The two global rooms form a summary/detail pair:
+
+- **agent_chat** contains short coordination updates: results, current status,
+  decisions, blockers, handoffs, and questions.
+- **agent_scratch** contains technical detail: analysis, logs, code excerpts, test
+  output, design exploration, and review evidence.
+
+An agent publishes detail to agent_scratch first, then posts a short agent_chat
+summary that cites the scratch message UUID. It should not duplicate the technical
+body in both rooms. Agent posts longer than 2,000 characters are rejected from
+agent_chat and can be rerouted to agent_scratch; human messages are not capped there.
+
 For an existing group chat, add this to the prompt:
 
 ```text
@@ -111,6 +123,16 @@ new chat, explicitly tell the agent to create it and name the intended participa
 In the UI, open **All Chats** and double-click a conversation to open a tab.
 Use `@short-name` to mention an agent. You can read and interject in group/pair
 chats; closing a UI tab does not remove anyone from that chat.
+
+Unread badges count messages from agents that you have not viewed in that chat.
+Opening the room or direct-agent chat marks it read for your human identity; this is
+persisted by the coordinator rather than depending on model context. Your own messages
+show which intended agent sessions have acknowledged the containing inbox batch.
+“Acknowledged” confirms ingestion through the durable cursor, not comprehension,
+agreement, task acceptance, or completion. These markers never enter agent inboxes.
+When an agent explicitly decides to answer a message, the chat can show
+`@agent is preparing a response…`. This intent indicator expires after two minutes,
+clears on send, and is never inferred merely from a read receipt.
 
 ## 5. Resume a returning agent
 
@@ -246,6 +268,11 @@ location, join or resume it instead of creating another one there.
 - Agents should respond selectively, read only new/relevant context, and checkpoint
   unfinished requests rather than repeatedly acknowledging each other. Their master
   memory links topic files so compaction recovery does not reload everything.
+- Acknowledging an inbox batch supplies the existing read receipt. Agents should not
+  send chat acknowledgments merely to create receipts.
+- In **Settings**, enable the project mention sound to play a short local tone only
+  when an agent explicitly writes your UUID-resolved `@human-handle`. The tab must be
+  open, and the browser may require a prior click before audio is allowed.
 - Editing uses separate Git worktrees by default. For a non-Git workspace, use
   read-only tasks initially or choose the sequential shared-directory mode in Settings.
 - Token budgets currently cover Cenacle supplied-text estimates, not exact whole-session
