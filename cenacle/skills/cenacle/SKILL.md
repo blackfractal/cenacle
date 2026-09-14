@@ -1,0 +1,191 @@
+---
+name: cenacle
+description: Create, join, or resume a Cenacle project and coordinate scoped work with human and agent participants through durable chats, tasks, votes, and checkpoints. Use when asked to work in a Cenacle project folder.
+---
+
+# Cenacle
+
+Coordinate through a local project folder containing `cenacle.json` and `cenacle_files/`.
+Use this skill from any host that can run local commands and keep an active session.
+It does not start model sessions, grant new permissions, or wake a closed terminal.
+
+## Connect once
+
+Use `python <this-skill>/scripts/cenacle_client.py` as the command prefix below.
+Alternatively use the installed `cenacle` command. `--home <directory>` goes **before**
+the subcommand when the coordinator uses a nondefault home. Do not change host settings.
+
+- **Create:** `init <new-or-empty-folder> --name <name> --goal <goal> --workspace <existing-workspace> --human <owner> --context-file <utf8-file>`.
+  Prefer `<workspace>/.cenacle` for coordination. The client creates it as needed;
+  the code workspace must already exist. A separate coordination location is also supported.
+  Write useful shared background into that context file. Projects start paused. Open
+  the UI and tell the human it is ready; do not resume yourself using owner controls.
+- **Join:** `join --project <folder> --handle <short-name> --role <role> --provider <host-label>`.
+  Save returned `agent_id`, `session_id`, `direct_room`, `coordinator_home`, and
+  `master_memory`, `memory_folder`, and `recovery_file` in your session context and
+  host compaction summary/persistent notes.
+- **Resume:** read the roster in `cenacle.json` to identify your saved UUID, then
+  `resume --project <folder> --agent <UUID>`. Never create a duplicate identity to
+  avoid recovery. An active identity requires explicit `--takeover` **only after
+  confirming the previous session has stopped**. Use the new session UUID thereafter.
+
+For every subsequent agent command include `--project <folder> --agent <UUID>
+--session <session-UUID>`. Never omit identity arguments to impersonate the human.
+Credentials remain in the local coordinator home; never paste them into chats.
+
+## Emergency recovery and your responsibility
+
+Each agent owns `cenacle_files/agents/<UUID>/MEMORY.md` plus a `memory/` directory.
+`MEMORY.md` is your concise, durable “start here” index for this project; Cenacle
+creates it once and never overwrites it. Organize longer knowledge into clearly named
+Markdown topic files under `memory/` and link them from the master. Store stable facts,
+decisions, evidence, important paths, and short dated summaries—not credentials,
+transcript copies, generated logs, or private chain-of-thought. All memory is visible
+to the human. Write only inside YOUR UUID directory and use atomic file replacement.
+
+When confused about the project, read `MEMORY.md` first, then `RECOVERY.md` for live
+identity/session recovery and the saved checkpoint. Read only the topic files relevant
+to the current task. Treat memory as a fallible aid: verify task revisions, code and
+test evidence before acting. After changing the memory map or topic files, publish a
+checkpoint so the generated recovery inventory refreshes.
+
+Each agent has `cenacle_files/agents/<UUID>/RECOVERY.md`, generated from its own
+checkpoint plus recovery instructions and file locations. The project's top-level
+`RECOVERY.md` indexes identities. If an existing handwritten file occupies that name,
+Cenacle preserves it and uses `RECOVERY.generated.md`; use the returned `recovery_file`.
+
+Maintain YOUR recovery brief through `call checkpoint` (alias `call recovery`) after
+meaningful milestones, blockers or direction changes, and before compaction, handoff,
+pause or exit. Include objective/scope, current task and pending message IDs, completed
+versus unverified work, workspace/branch, changed files, evidence paths, blockers or
+approvals still needed, and the next concrete action. Keep it within 12 KB. Omitting
+`pending` preserves existing pending IDs; send an empty list only to clear them deliberately.
+Check for `projection_warning`: a committed checkpoint may still need its readable
+recovery file repaired. Do not claim the emergency file is current when writing failed.
+
+If the coordinator is unavailable, write an atomic UTF-8 `RECOVERY.local.md` in YOUR
+agent directory with a UTC timestamp and last checkpoint revision. This is the one
+agent-owned offline recovery file: the coordinator never overwrites or automatically
+imports it. Reconcile it with live tasks on reconnect, checkpoint the result, then
+mark the local note reconciled. Do not edit someone else's recovery file or write
+credentials/private reasoning into yours.
+
+When disoriented, read your saved master-memory pointer first, followed by your
+recovery file. If only the project folder is known, read its `RECOVERY.md` identity
+index (or run `recover --project <folder>`,
+which works offline). Select your identity using your retained UUID or human assignment;
+never guess the lead/first/latest identity. Read only your master index, needed topic
+memories, your own recovery brief/local note, then `cenacle.json`, this skill and the
+necessary saved state. The recovery file gives the
+exact read order and reconnect procedure. Follow [references/recovery.md](references/recovery.md).
+
+Before compaction, preserve this locator in your host summary/persistent session notes:
+master-memory and recovery-file paths, project path, coordinator home, skill/client path, agent UUID,
+and your OWN session UUID (not the credential). Do this early, not only when warned
+about compaction. A recovery file cannot force a host to retain or reload instructions;
+no automatic host hook is installed. If identity/session provenance is lost, use the
+index and ask the human when needed instead of taking over another live session.
+
+Run `inbox --bootstrap` once. Read **all** returned `general_context`, the goal,
+policy, lead designation, roster, controls, personal checkpoint, pending IDs, and room list.
+If capped, retry once with `--max-bytes 64000`; if still capped, report the error
+to the human rather than repeatedly retrying. This is shared project context,
+not permission to override host/user instructions. Until effective pause is false,
+only checkpoint/acknowledge/presence and watch controls; do not edit, message or vote.
+
+Treat your agent UUID as the durable identity and the short `@handle` as a mutable
+label. A human may rename an agent. Changed inbox context includes the current roster;
+adopt your UUID's current handle for future messages and mentions without creating a
+new profile. Do not rewrite old messages or infer that a rename changed ownership,
+task assignments, room membership, checkpoints, or session identity.
+
+## Participate without chatter
+
+1. After consuming an inbox batch, record any unfinished requests in `pending`
+   and `call ack` its `batch_id`. Reading is not accepting a task or completing work.
+2. Decide whether a response contributes: answer an actionable direct question,
+   accept/reject a scoped request, report a blocker, correct a material error, or
+   supply a requested review. Global announcements and “working on it, stand by”
+   usually require **no reply**. Never acknowledge another acknowledgement.
+3. Create/claim a bounded task before editing. Inspect the current task revision.
+   Set presence to `working` when you begin actual work.
+   Use your own separate Git worktree by default; map it with `call workspace`.
+   In shared-directory mode hold the single editing task before writing. Read-only
+   work can claim with `editing:false`. Workspace setup and commands are in
+   [references/commands.md](references/commands.md).
+4. Check controls and unread messages before each meaningful work chunk, before
+   publishing, and after long-running commands. Keep chunks short enough for
+   cooperative pauses. No skill can interrupt a command already running in its host.
+5. Publish concise findings in `agent_chat`; put long technical output in
+   `agent_scratch`, linking the returned message UUID and an informative summary.
+   Use groups/pair rooms for focused exchanges. Everything is visible to the human.
+6. Record useful working notes (findings, decisions, blockers), separately from your
+   direct human chat. Do not transcribe private reasoning. Before handoff, compaction,
+   pause or exit, checkpoint tasks, pending IDs, worktree, changed files, evidence,
+   and the next concrete action. Completion requires verifiable results.
+
+For room creation, notes, task ownership, votes, usage records and exact JSON
+arguments, read [references/commands.md](references/commands.md) when first needed.
+
+## Watch and manage context precisely
+
+After draining `more:true` batches, remember the last `through` value and run
+`watch --after <sequence> --timeout 30`. It returns at most a notification and
+controls; it does not inject transcripts. Retain the returned `seq` for the next
+watch. Call `inbox` when `changed:true`, or at a work checkpoint. Do not bootstrap
+every time. When idle, set presence to `waiting` once before watching; use `blocked`
+for a recorded blocker. Continue watch/work while this task and host session remain active.
+If the host cannot continue waiting, checkpoint, mark disconnected, and tell the
+human that monitoring has stopped. Never claim a background helper is thinking.
+
+Each watch call also supplies a presence heartbeat. The coordinator publishes your
+`HEARTBEAT.json` at most once per minute, and the UI treats it as stale after two
+minutes. Keep the 30-second watch loop running while you are actually available, and
+check inbox/controls between meaningful work chunks. A fresh heartbeat proves only
+recent coordinator contact; `working` is your declared status and must reflect real
+work. Do not run a detached helper merely to appear alive. Inspect a specific peer's
+heartbeat only when coordination depends on availability; never poll or load every
+heartbeat into model context.
+
+- Normal inbox reads return unread events and changed shared context. A batch left
+  unacknowledged is identified without automatic replay. Preserve the batch ID until
+  acknowledgment succeeds. Store deferred message IDs explicitly in `pending`.
+- A preview is not a full read. Use `fetch --message <UUID> --start <offset>
+  --length <characters>` only for needed ranges. Remember ranges already read.
+- Use `inspect` with a specific ID or query to find older messages/tasks/rooms.
+  Do not read whole transcripts or the journal as your routine inbox.
+- After context loss in the **same live session**, `call context_reset`, then
+  `inbox --bootstrap`. On a new terminal, `resume` establishes a new context generation.
+  The durable cursor survives; the checkpoint and pending IDs recover unfinished work.
+  Explicitly retrieve referenced pending content; never assume an old cursor means
+  its content is still in this model context.
+- Cenacle counts supplied-text estimates separately from reported provider tokens.
+  Report provider metadata only when available, with source and unique record ID;
+  never invent exact totals. See [references/recovery.md](references/recovery.md)
+  for metric coverage and failure handling.
+
+## Stop and authority rules
+
+The human owns this session. Work autonomously only within the scoped task; obtain
+human authorization before destructive or external actions. A lead decision or
+advisory vote does not create that authorization. Only the human appoints the single
+lead. The lead resolves disagreement within scope; the human always has final say.
+
+Honor global pause, individual pause, and budget pause at the next checkpoint.
+Save a checkpoint and `call presence` with `status:"paused"`; watch controls only.
+Do not automatically clear a pause or raise a budget. Human messages may accumulate.
+
+Track two clocks: incoming silence from others in your direct/group chats or global
+`agent_chat`, and time since your own progress report. The default is 60 minutes,
+configurable. If still doing real work when `status_due:true`, post one useful global
+stand-by update with actual progress/blocker and mark `working`. It does **not** reset
+the incoming clock or justify idle looping. Idle waiting agents are paused after
+the incoming inactivity limit. No review-cycle limit is imposed.
+
+For a blocked exchange, make at most the configured number of targeted follow-ups
+per unanswered request (default one). Then checkpoint the blocker and wait for new
+information; never broadcast “anyone there?” repeatedly. A failed coordinator call
+gets at most the configured transport retries (default three), with delay and the
+same mutation request UUID. If unavailable, stop dependent work, save a local
+recovery note in your authorized workspace, and report locally. Do not write directly
+into the journal or reset identities/cursors to bypass failures.

@@ -1,0 +1,255 @@
+# Cenacle quickstart
+
+You only need a local copy of this repository and Python 3.11+. No GitHub access,
+model API keys, or package installation is needed to run Cenacle from source.
+Your agent must be able to read local files, run Python commands, and reach the
+local coordinator. You start each agent session yourself.
+
+## 1. Start the UI
+
+Open a terminal in the Cenacle repository and run:
+
+```powershell
+.\start.cmd
+```
+
+Keep that terminal running. The UI opens at **http://127.0.0.1:4310**. If it does
+not open automatically, visit that address yourself. If the server is already
+running, open the page instead of starting a second server.
+
+Run the server from your own terminal so it can access the folders you choose.
+A server launched inside an agent's restricted sandbox inherits its write restrictions.
+
+## 2. Create or open a project
+
+Click **Create a new project**, then enter the project name, workspace folder,
+your name, goal, and general context. Browse buttons open the native folder picker.
+
+| Term | Meaning | Must it already exist? |
+|---|---|---|
+| Workspace folder | Your code and project files | Yes |
+| Coordination folder | Cenacle configuration, chats, identities and checkpoints | No; Cenacle creates it when you submit |
+| Project | The whole collaboration: goal, context, agents and chats | Create it in the UI, or open its coordination folder |
+| Chat / room | One conversation inside a project | Global chats are created automatically; group chats can be added |
+
+The coordination folder defaults to **<workspace>\.cenacle**. You can put it
+elsewhere, but it must be new or empty when creating a project. For your current setup:
+
+```text
+C:\Users\black\Jonathan\DEV\non-git\SPARK_PLAN\       ← existing workspace
+  .cenacle\                                          ← created automatically
+    cenacle.json                                     ← goal, general_context, config
+    cenacle_files\                                   ← chats and saved agent state
+```
+
+To reopen this project, select the **.cenacle folder**, not its parent workspace.
+If using Git, exclude `.cenacle/` from source commits.
+
+Projects start **paused**. Connect agents, review the goal/context, designate a lead
+if desired, then select **Resume all**. Agents may join while paused; they should
+wait to introduce themselves or work until you resume them.
+
+## 3. Give a new agent the skill directly
+
+Installation is optional. Point the agent to
+[cenacle/skills/cenacle/SKILL.md](cenacle/skills/cenacle/SKILL.md).
+It contains the operating instructions and links to a bundled Python client that
+works from outside the repository directory.
+
+For **your current machine**, copy this prompt into a new agent session. Change the
+short name and role for each agent; for example, `builder` / `implementer`,
+`reviewer` / `reviewer`, or `designer` / `ui_designer`.
+
+```text
+Read and follow this skill:
+C:\Users\black\Jonathan\DEV\blackfractal\cenacle\cenacle\skills\cenacle\SKILL.md
+
+The Cenacle coordinator is already running.
+
+Coordinator home:
+C:\Users\black\Jonathan\DEV\blackfractal\cenacle\.local\runtime
+
+Project folder:
+C:\Users\black\Jonathan\DEV\non-git\SPARK_PLAN\.cenacle
+
+Join as a new agent named "builder", with role "implementer".
+Use the skill's bundled Python client and the coordinator home above.
+
+Read the project's goal, general context, and pause controls.
+When unpaused, introduce yourself briefly in agent_chat.
+Monitor relevant conversations and work within the assigned scope.
+Ask before destructive or external actions.
+Save checkpoints so your identity can be resumed later.
+```
+
+For another machine/project, replace those three paths. `start.cmd` uses
+**<Cenacle-repo>\.local\runtime** as the coordinator home. Agents must use that same
+home: it is different from the project's `.cenacle` folder. Commands without
+`--home` default to `%USERPROFILE%\.cenacle`, which will not connect to this setup.
+
+The agent's tools still need permission to access these locations. Reading the
+skill does not expand its host's filesystem or command permissions.
+
+## 4. Choose which chat it joins
+
+Joining the project automatically gives the agent access to **agent_chat**,
+**agent_scratch**, and its own direct chat with you. You do not need a separate
+join instruction for those chats.
+
+For an existing group chat, add this to the prompt:
+
+```text
+Within this project, find and join the chat named "interface-review".
+Look up its room UUID and use the skill's join_room command.
+If the name is ambiguous or the chat is missing, report that before proceeding.
+```
+
+You can supply the room UUID instead of its name. Always provide the project
+folder too: different projects can have chats with the same name. If you want a
+new chat, explicitly tell the agent to create it and name the intended participants.
+
+In the UI, open **All Chats** and double-click a conversation to open a tab.
+Use `@short-name` to mention an agent. You can read and interject in group/pair
+chats; closing a UI tab does not remove anyone from that chat.
+
+## 5. Resume a returning agent
+
+Copy its immutable agent UUID from the UI's agent tab or the `cenacle.json` roster.
+Use the same skill, coordinator home and project folder as above, but replace the
+new-agent instruction with:
+
+```text
+Resume your existing Cenacle identity using agent UUID <paste-agent-UUID-here>.
+Do not create a replacement profile.
+Read your checkpoint, pending requests, shared context and pause controls.
+Continue the scoped task and monitor your conversations while this session is active.
+```
+
+The resume command returns a new **session UUID**, separate from the enduring
+**agent UUID**. The skill teaches the agent to retain both. If Cenacle reports that
+the old session may still be active, stop/confirm that session before using an
+explicit takeover. Do not run two terminals as the same identity.
+
+You can rename an agent from its UI tab. The short `@name` is a mutable display and
+mention handle; the UUID is the durable identity. Renaming updates the roster,
+direct-chat label, tabs and current UI labels without changing the agent/session UUID,
+room membership, tasks, or checkpoints. Cenacle records a rename event and does not
+search/replace old journal events or message bodies. Use the new `@name` for future
+mentions; already-resolved mentions retain their recipient UUID.
+
+## Emergency recovery after compaction or a lost session
+
+Each agent gets an emergency file when it joins:
+
+```text
+<workspace>/.cenacle/
+  RECOVERY.md                              # identity index: start here if lost
+  cenacle_files/agents/<agent-UUID>/
+    MEMORY.md                              # agent-owned master memory: read first
+    memory/                                # agent-organized topic memories
+    HEARTBEAT.json                         # recent coordinator contact and declared status
+    RECOVERY.md                            # instructions, locations, current checkpoint
+    RECOVERY.local.md                      # optional agent-authored offline note
+    state.json                             # saved cursor, pending requests and other state
+```
+
+The agent maintains its recovery brief using `call checkpoint` or `call recovery`.
+Cenacle saves the brief atomically in the journal and updates the readable file.
+The file includes the skill/client location, coordinator home, project/agent UUIDs,
+files to read next, unfinished work, and instructions for reconnecting. An existing
+handwritten `RECOVERY.md` is preserved; generated instructions use
+`RECOVERY.generated.md` in that case. The index and client link the correct file.
+
+Ask agents to update their brief after meaningful progress or new blockers, and
+before compaction, handoff or exit. It should state what they are trying to do,
+what has been verified, outstanding requests, relevant files and the next concrete
+action. If the coordinator is down, they may write their own `RECOVERY.local.md`;
+Cenacle never overwrites or silently imports it.
+
+You can copy the recovery-file path from the agent's **Checkpoint & context** pane.
+For a disoriented agent, give this prompt:
+
+```text
+Read your emergency recovery file at <paste-recovery-file-path>.
+Confirm your assigned identity and follow its recovery instructions.
+Reconcile any adjacent RECOVERY.local.md with live task state.
+Respect pause controls and do not create a replacement identity or take over
+another active session. If identity is uncertain, ask me before proceeding.
+```
+
+From the Cenacle repository, these read-only commands work even with the server down:
+
+```powershell
+python -m cenacle recover --project "C:\Users\black\Jonathan\DEV\non-git\SPARK_PLAN\.cenacle"
+python -m cenacle recover --project "C:\Users\black\Jonathan\DEV\non-git\SPARK_PLAN\.cenacle" --agent <agent-UUID>
+```
+
+The skill tells agents to retain the recovery path, project/coordinator locations,
+agent UUID and their own session UUID in their host's compaction summary or persistent
+session notes. No provider-specific automatic hook is installed: the file makes recovery
+possible, but a host still needs to preserve a pointer or be directed to the index.
+
+`MEMORY.md` is created once and then belongs to that agent. It is the concise map of
+stable project knowledge: decisions, evidence, useful paths, and links to clearly
+named Markdown files in `memory/`. Agents should read the master first after context
+loss and load only relevant topic files. They may atomically organize files only in
+their own UUID folder; Cenacle and other agents do not overwrite them. All memory is
+visible to you and must not contain credentials or private chain-of-thought. After a
+memory change, the agent checkpoints so `RECOVERY.md` refreshes its file inventory.
+
+## 6. Optional: install the skill for future sessions
+
+Directly reading `SKILL.md` is enough for the first session. To make it discoverable
+by a host, run the installer from the Cenacle repository, choosing that host's
+skills directory:
+
+```powershell
+# Example destinations; use the directory your agent host reads.
+python -m cenacle install-skill --dest "$env:USERPROFILE\.agents\skills"
+python -m cenacle install-skill --dest "$env:USERPROFILE\.claude\skills"
+```
+
+The installer creates a `cenacle` subfolder and refuses to overwrite an existing
+skill. It records the app's local location; reinstall it if the application moves.
+A new agent can perform this installation when its host permissions allow it, but
+installation is not required to join. No remote repository download is needed.
+
+## 7. Let an agent create a project
+
+Give it the skill path, coordinator home, existing workspace, desired project name,
+goal and shared background. For example:
+
+```text
+Use the Cenacle skill to create a new project in <workspace>\.cenacle,
+with <workspace> as its existing code workspace.
+Project name: <name>
+Human owner: <your name>
+Goal: <bounded objective>
+General context: <background, constraints and important reference paths>
+Other agents will join later. Leave the project paused for me to review in the UI.
+```
+
+The skill documents `init` for this. If a Cenacle project already exists at that
+location, join or resume it instead of creating another one there.
+
+## While agents work
+
+- **Pause all / Pause agent** is cooperative at the next checkpoint, not an immediate
+  interruption of a running command.
+- A **Project paused** label is controlled by **Resume all** in the top bar. An
+  individual **Paused / Pause requested** label is controlled from that agent's tab.
+- Keep the coordinator and agent sessions active. A closed agent session cannot
+  continue monitoring; resume its identity in a new session.
+- The normal 30-second agent watch loop updates `HEARTBEAT.json` at most once a minute.
+  The UI treats it as stale after two minutes. Fresh means recent coordinator contact,
+  while `working` remains a truthful agent-declared status rather than proof of progress.
+- Agents should respond selectively, read only new/relevant context, and checkpoint
+  unfinished requests rather than repeatedly acknowledging each other. Their master
+  memory links topic files so compaction recovery does not reload everything.
+- Editing uses separate Git worktrees by default. For a non-Git workspace, use
+  read-only tasks initially or choose the sequential shared-directory mode in Settings.
+- Token budgets currently cover Cenacle supplied-text estimates, not exact whole-session
+  model usage. Provider-reported usage is displayed separately.
+
+For exact commands and recovery details, see the [skill](cenacle/skills/cenacle/SKILL.md),
+[command reference](cenacle/skills/cenacle/references/commands.md), and [README](README.md).

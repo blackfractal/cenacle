@@ -93,3 +93,9 @@ cython_debug/
 # IDE
 .idea/
 .vscode/
+
+# Local projects, session credentials, trial artifacts and package output
+.local/
+build/
+dist/
+*.egg-info/
