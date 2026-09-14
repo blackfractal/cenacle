@@ -9,7 +9,7 @@ Cenacle is a local, folder-based collaboration workspace for a human and several
 
 The first successful workflow is real coding work: Jonathan starts an implementer and a reviewer, gives them a bounded goal, observes their conversation, interjects from the UI, and receives a verified result or a precise explanation of why work paused. A third agent can join without reconfiguring the whole system. The collaboration must survive a session restart without silently losing messages or repeating completed actions.
 
-Planning output belongs in `_plants`, following the user's explicit spelling. The repository also has an empty `_plans` directory; it is left untouched. Questions and undecided defaults are recorded in [discovery_questions.md](discovery_questions.md). Recommendations below are proposals, not recorded user decisions.
+Planning output belongs in `_plans`. Questions and undecided defaults are recorded in [discovery_questions.md](discovery_questions.md). Recommendations below are proposals, not recorded user decisions.
 
 ## 2. Requirements already established
 

@@ -48,6 +48,7 @@ def parser():
     install.add_argument("--dest", required=True, help="Parent skills directory, e.g. .agents/skills or .claude/skills")
     doctor = sub.add_parser("doctor")
     doctor.add_argument("--project")
+    sub.add_parser("ping", help="Check coordinator health without reading a credential")
     recover = sub.add_parser("recover", help="Read the project/agent recovery file, even when the coordinator is offline")
     recover.add_argument("--project", required=True, help="Coordination folder or workspace containing .cenacle")
     recover.add_argument("--agent", help="Your immutable agent UUID; omit to read the identity index")
@@ -113,7 +114,17 @@ def main(argv=None):
                 server.server_close()
                 server.app.close()
             return
-        if args.command == "init":
+        if args.command == "ping":
+            try:
+                public_endpoint = json.loads((home() / "endpoint-public.json").read_text("utf-8"))
+                with urllib.request.urlopen(public_endpoint["url"] + "/api/health", timeout=3) as response:
+                    health = json.load(response)
+            except (OSError, ValueError, KeyError, urllib.error.URLError) as exc:
+                raise Problem("Coordinator unavailable. Start 'cenacle serve' with this --home. " + str(exc))
+            if health.get("ok") is not True or health.get("service") != "cenacle":
+                raise Problem("Unexpected response from coordinator health endpoint")
+            result = {"connected": True, "endpoint": public_endpoint["url"], "service": health["service"], "version": health["version"]}
+        elif args.command == "init":
             context = Path(args.context_file).read_text("utf-8") if args.context_file else ""
             p = Project.create(args.path, args.name, args.goal, args.workspace, args.human, args.reference, context)
             result = {"project_id": p.id, "path": str(p.path), "config": str(p.path / "cenacle.json"), "paused": True}

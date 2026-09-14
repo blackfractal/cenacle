@@ -70,6 +70,14 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertIn(b"general_context", body)
 
+    def test_public_health_and_url_file_do_not_expose_owner_credential(self):
+        status, _, body = self.request("/api/health", owner=False)
+        self.assertEqual(200, status)
+        self.assertEqual({"ok": True, "service": "cenacle", "version": "0.1.0"}, json.loads(body))
+        public = json.loads((self.root / "runtime" / "endpoint-public.json").read_text("utf-8"))
+        self.assertEqual({"url": self.url}, public)
+        self.assertNotIn("credential", public)
+
     def test_native_folder_selection_and_cancel_without_creating_project(self):
         before = set(self.server.app.projects)
         with patch("cenacle.server.choose_folder", return_value=str(self.root / "code")) as picker:
@@ -174,6 +182,9 @@ class HTTPTests(unittest.TestCase):
         run = subprocess.run([sys.executable, "-m", "cenacle", "install-skill", "--dest", str(self.root / "skills")], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(0, run.returncode, run.stderr)
         client = self.root / "skills" / "cenacle" / "scripts" / "cenacle_client.py"
+        ping = subprocess.run([sys.executable, str(client), "--home", str(self.root / "runtime"), "ping"], cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(0, ping.returncode, ping.stderr)
+        self.assertTrue(json.loads(ping.stdout)["connected"])
         def cli(*args):
             return subprocess.run([sys.executable, str(client), "--home", str(self.root / "runtime"), *args, "--project", str(self.p.path)], cwd=self.root, capture_output=True, text=True)
         run = cli("join", "--handle", "trial", "--role", "reviewer")

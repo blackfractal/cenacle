@@ -186,6 +186,15 @@ are not killed. Last seen means contact was observed, not proof of ongoing work.
 The regular 30-second watch loop refreshes a small heartbeat projection at most once
 per minute; the UI marks it stale after two minutes. Heartbeats do not wake peers or
 enter normal inbox batches.
+The UI prominently flags an agent that loses contact while still declaring `working`.
+An explicit disconnected presence records a clean sign-off and is displayed separately
+from a dormant profile or stale active session. Checkpoints are labeled as agent-authored
+claims that must be verified against task, file and test evidence.
+
+`cenacle ping` reads a URL-only `endpoint-public.json` and calls an unauthenticated
+loopback health endpoint. Agents never need to inspect the credential-bearing
+`endpoint.json` just to test coordinator availability. Client transport failures use
+nonzero exit status and JSON errors on stderr; malformed output is never quiet activity.
 
 **Token accounting:** supplied-text estimates (UTF-8 bytes / 4) are separate from
 host-reported input/output. Optional per-agent pause budgets cover Cenacle supplied
@@ -227,6 +236,6 @@ not browser layout. An independent agent trial exercised the installed skill.
 Real-browser visual validation and a sustained user-started Claude/Codex coding pilot
 remain to be performed.
 
-See [implementation status](_plants/implementation_status.md), the
-[design plan](_plants/implementation_plan.md), and the
+See [implementation status](_plans/implementation_status.md), the
+[design plan](_plans/implementation_plan.md), and the
 [command reference](cenacle/skills/cenacle/references/commands.md).

@@ -1,4 +1,4 @@
-# Implementation status — 2026-09-13
+# Implementation status — 2026-09-14
 
 The user authorized building after the design discussion. The application and portable
 skill are implemented. The older design documents include future specifications;
@@ -82,15 +82,24 @@ estimates only. Pause is cooperative, with no immediate termination claims.
 | Dumps and repeated handoffs waste context | Delta inbox, scratch previews, targeted ranges, explicit estimate coverage |
 | Human interjections must remain authoritative | Human controls, visible messages, appointed lead, advisory votes |
 | Timeout is not verified process termination | Next-checkpoint pause only; no kill claims |
+| Stale `working` can hide an abandoned in-flight task | Amber top-bar/roster alert for lost contact while working |
+| Clean exit and killed terminal looked identical | Explicit disconnected presence records and displays a clean sign-off |
+| Checkpoint prose can be mistaken for verified truth | Checkpoint pane labels it agent-authored and points to task/file/test evidence |
+| Health checks tempted agents to inspect a credential file | URL-only endpoint, public loopback health route, and `cenacle ping` |
+| Broken watch output was mistaken for a quiet room | Skill requires zero exit plus valid JSON and defines two honest session endings |
 
 Sources: [Codex notes](../_knowledge/codex_notes.md) and
-[Claude notes](../_knowledge/claude_notes.md).
+[original Claude notes](../_knowledge/claude_notes.md), plus the
+[Clé field notes](../_knowledge/cle_project_claude_notes.md).
 
 ## Deferred
 
 Remote transport/multiple human accounts, remote authentication, immediate process
 control, session launching, exact provider telemetry, specific ChatGPT integration,
 lead councils, binary attachments and archival policy.
+Potential field-note follow-ups include explicit message `needs_reply` metadata,
+Git/worktree readiness diagnostics, and checkpoint-selected memory references. These
+need interaction and state semantics beyond the reliability/UI changes above.
 Native folder selection is implemented for open-project, project creation and workspace
 settings, using an isolated Tk dialog process. Selection/cancellation, access checks
 and single-dialog admission are covered by tests; native visual interaction requires

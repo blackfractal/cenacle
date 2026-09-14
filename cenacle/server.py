@@ -116,6 +116,8 @@ class Handler(BaseHTTPRequestHandler):
                 if self.headers.get("X-Cenacle-UI") != "1":
                     raise Problem("Use the local Cenacle interface to reconnect", 403)
                 return self.respond(200, {"ok": True}, cookie=True)
+            if url.path == "/api/health":
+                return self.respond(200, {"ok": True, "service": "cenacle", "version": "0.1.0"})
             if not url.path.startswith("/api/"):
                 allowed = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8")}
                 if url.path not in allowed:
@@ -246,4 +248,5 @@ def make_server(port=4310, location=None):
     server.daemon_threads = True
     server.app = app
     atomic(app.home / "endpoint.json", {"url": f"http://127.0.0.1:{server.server_address[1]}", "credential": app.secret})
+    atomic(app.home / "endpoint-public.json", {"url": f"http://127.0.0.1:{server.server_address[1]}"})
     return server

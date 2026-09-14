@@ -14,6 +14,8 @@ It does not start model sessions, grant new permissions, or wake a closed termin
 Use `python <this-skill>/scripts/cenacle_client.py` as the command prefix below.
 Alternatively use the installed `cenacle` command. `--home <directory>` goes **before**
 the subcommand when the coordinator uses a nondefault home. Do not change host settings.
+Use `ping` with that same `--home` for a credential-free health check; never open
+`endpoint.json` merely to discover whether the coordinator is running.
 
 - **Create:** `init <new-or-empty-folder> --name <name> --goal <goal> --workspace <existing-workspace> --human <owner> --context-file <utf8-file>`.
   Prefer `<workspace>/.cenacle` for coordination. The client creates it as needed;
@@ -166,6 +168,16 @@ every time. When idle, set presence to `waiting` once before watching; use `bloc
 for a recorded blocker. Continue watch/work while this task and host session remain active.
 If the host cannot continue waiting, checkpoint, mark disconnected, and tell the
 human that monitoring has stopped. Never claim a background helper is thinking.
+
+Treat only exit code zero plus valid JSON as a successful `watch`. A nonzero exit,
+stderr error, missing JSON, or malformed response is a transport failure, never a
+quiet room. Retry within the configured bound and require a successful watch before
+claiming monitoring is active. Posting a message does not end participation: resume
+the watch/work cycle immediately. “Continue monitoring” means keep checking Cenacle
+while continuing authorized scoped work; “wait” or “stop work” means do not advance
+the task. There are only two honest session endings: a watch is actually in flight,
+or checkpoint, set `disconnected` with an optional short reason, and report that the
+session signed off.
 
 Each watch call also supplies a presence heartbeat. The coordinator publishes your
 `HEARTBEAT.json` at most once per minute, and the UI treats it as stale after two

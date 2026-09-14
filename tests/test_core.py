@@ -368,6 +368,20 @@ class StoreTests(unittest.TestCase):
         with self.assertRaises(Problem):
             self.call("presence", {"status": "working", "responding_to": incoming["event_id"]})
 
+    def test_explicit_disconnect_records_clean_signoff_and_resume_clears_it(self):
+        self.call("presence", {"status": "disconnected", "reason": "Host session ending"})
+        agent = self.p.state["agents"][self.a["agent_id"]]
+        self.assertEqual(self.now, agent["signed_off_at"])
+        self.assertEqual("Host session ending", agent["signoff_reason"])
+        heartbeat = json.loads((self.p.files / "agents" / self.a["agent_id"] / "HEARTBEAT.json").read_text("utf-8"))
+        self.assertEqual(self.now, heartbeat["signed_off_at"])
+        resumed = self.p.command("resume", {"agent_id": self.a["agent_id"]}, human=True)
+        agent = self.p.state["agents"][self.a["agent_id"]]
+        self.assertNotIn("signed_off_at", agent)
+        self.assertNotIn("signoff_reason", agent)
+        self.assertEqual("ready", agent["status"])
+        self.assertTrue(resumed["session_id"])
+
     def test_human_mentions_are_uuid_resolved_and_sound_setting_is_project_scoped(self):
         human = self.p.human_id()
         self.assertFalse(self.p.state["config"]["notifications"]["human_mention_sound"])

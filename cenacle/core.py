@@ -308,6 +308,7 @@ class Project:
                 "status": agent.get("status", "disconnected"), "last_seen": last_seen,
                 "heartbeat_interval_seconds": 60, "fresh_for_seconds": 120,
                 "paused": bool(agent.get("paused")), "budget_paused": bool(agent.get("budget_paused")),
+                "signed_off_at": agent.get("signed_off_at"), "signoff_reason": agent.get("signoff_reason"),
                 "responding_to": agent.get("responding_to"), "responding_room": agent.get("responding_room"),
                 "responding_expires_at": agent.get("responding_expires_at"),
                 "meaning": "Recent coordinator contact; status is agent-declared and is not proof that work continues."}
@@ -579,6 +580,15 @@ class Project:
                     if status not in ("working", "waiting", "blocked", "paused", "disconnected", "ready"):
                         raise Problem("Invalid agent status")
                     agent["status"] = status
+                    if status == "disconnected":
+                        reason = args.get("reason", "")
+                        if not isinstance(reason, str) or len(reason.encode("utf-8")) > 240:
+                            raise Problem("Sign-off reason must be text, at most 240 UTF-8 bytes")
+                        agent["signed_off_at"] = now
+                        agent["signoff_reason"] = reason.strip()
+                    else:
+                        agent.pop("signed_off_at", None)
+                        agent.pop("signoff_reason", None)
                     if "responding_to" in args:
                         message_id = args.get("responding_to")
                         if message_id is None:
@@ -729,6 +739,8 @@ class Project:
         s["sessions"][sid] = {"id": sid, "agent_id": agent["id"], "token_hash": hashlib.sha256(token.encode()).hexdigest(),
                               "generation": uid(), "delivered": [], "batch": None}
         agent.update(session_id=sid, last_seen=now, watch_started=now, status="ready")
+        agent.pop("signed_off_at", None)
+        agent.pop("signoff_reason", None)
         return {"agent_id": agent["id"], "session_id": sid, "credential": token, "direct_room": agent["direct_room"],
                 "recovery_file": str(recovery_path(self, agent["id"])), "master_memory": str(memory_index_path(self, agent["id"])),
                 "memory_folder": str(memory_dir_path(self, agent["id"])), "heartbeat_file": str(self.files / "agents" / agent["id"] / "HEARTBEAT.json"),

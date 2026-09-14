@@ -142,6 +142,7 @@ test('agent checkpoint pane exposes its emergency file',async()=>{
   assert(node('#agent-content').innerHTML.includes('Copy heartbeat file path'));
   assert(node('#agent-content').innerHTML.includes('Copy recovery file path'));
   assert(node('#agent-content').innerHTML.includes('C:/project/.cenacle/cenacle_files/agents/a/RECOVERY.md'));
+  assert(node('#agent-content').innerHTML.includes('Agent-authored recovery claim'));
 });
 test('project pause is distinguished from an individual agent pause',()=>{
   assert.equal(run(`state.control={paused:true,revision:4};state.agents.a.status='working';state.agents.a.last_seen=Date.now()/1000;state.agents.a.paused=false;state.agents.a.budget_paused=false;presence(state.agents.a)`),'Working · pause pending');
@@ -155,4 +156,12 @@ test('global rooms present agent chat as summaries and scratch as technical deta
   run(`composer('agent_scratch')`);
   assert(node('#composer-slot').innerHTML.includes('DETAIL CHANNEL'));
   assert(node('#composer-slot').innerHTML.includes('Technical detail'));
+});
+test('stale working agents are warned while explicit disconnect is a clean signoff',()=>{
+  run(`state.control={paused:false,revision:4};state.agents.a.status='working';state.agents.a.last_seen=Date.now()/1000-180;delete state.agents.a.signed_off_at;render()`);
+  assert(node('#app').innerHTML.includes('1 LOST CONTACT'));
+  assert(node('#app').innerHTML.includes('Lost contact while working'));
+  assert.equal(run(`presence(state.agents.a)`).startsWith('Lost contact'),true);
+  run(`state.agents.a.status='disconnected';state.agents.a.signed_off_at=Date.now()/1000`);
+  assert.equal(run(`presence(state.agents.a)`).startsWith('Signed off'),true);
 });

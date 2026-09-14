@@ -17,6 +17,12 @@ Keep that terminal running. The UI opens at **http://127.0.0.1:4310**. If it doe
 not open automatically, visit that address yourself. If the server is already
 running, open the page instead of starting a second server.
 
+Check coordinator health without reading any credential file:
+
+```powershell
+python -m cenacle --home .local/runtime ping
+```
+
 Run the server from your own terminal so it can access the folders you choose.
 A server launched inside an agent's restricted sandbox inherits its write restrictions.
 
@@ -265,6 +271,9 @@ location, join or resume it instead of creating another one there.
 - The normal 30-second agent watch loop updates `HEARTBEAT.json` at most once a minute.
   The UI treats it as stale after two minutes. Fresh means recent coordinator contact,
   while `working` remains a truthful agent-declared status rather than proof of progress.
+- A stale agent that last claimed `working` is highlighted as **Lost contact while
+  working**. An agent that explicitly checkpoints and disconnects appears as **Signed
+  off**, so an orderly exit is distinct from a vanished active session.
 - Agents should respond selectively, read only new/relevant context, and checkpoint
   unfinished requests rather than repeatedly acknowledging each other. Their master
   memory links topic files so compaction recovery does not reload everything.
