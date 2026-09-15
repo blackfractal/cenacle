@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from cenacle.core import Project, Problem, atomic
-from cenacle.recovery import memory_dir_path, memory_index_path, recovery_path
+from vibeguild.core import Project, Problem, atomic
+from vibeguild.recovery import memory_dir_path, memory_index_path, recovery_path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,7 +18,7 @@ class RecoveryTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.workspace = self.root / "Code with spaces Clé"
         self.workspace.mkdir()
-        self.p = Project.create(self.workspace / ".cenacle", "Recovery test", "Recover a parser task", self.workspace)
+        self.p = Project.create(self.workspace / ".vibeguild", "Recovery test", "Recover a parser task", self.workspace)
         self.p.set_recovery_home(self.root / "runtime")
         self.a = self.p.command("register", {"handle": "builder"}, human=True)
         self.b = self.p.command("register", {"handle": "reviewer"}, human=True)
@@ -91,11 +91,11 @@ class RecoveryTests(unittest.TestCase):
         session = self.p.state["agents"][agent]["session_id"]
         self.p.command("checkpoint", {"body": "Next: review the saved parser fixture"}, self.a["credential"])
         self.p.close()
-        run = subprocess.run([sys.executable, "-m", "cenacle", "--home", str(self.root / "no-server"), "recover", "--project", str(self.workspace), "--agent", agent], cwd=ROOT, capture_output=True, encoding="utf-8")
+        run = subprocess.run([sys.executable, "-m", "vibeguild", "--home", str(self.root / "no-server"), "recover", "--project", str(self.workspace), "--agent", agent], cwd=ROOT, capture_output=True, encoding="utf-8")
         self.assertEqual(0, run.returncode, run.stderr)
         self.assertIn("review the saved parser fixture", run.stdout)
         self.assertIn("context_reset", run.stdout)
-        self.p = Project(self.workspace / ".cenacle")
+        self.p = Project(self.workspace / ".vibeguild")
         self.assertEqual(session, self.p.state["agents"][agent]["session_id"])
 
     def test_failed_recovery_projection_reports_warning_and_repairs_on_retry(self):
@@ -103,7 +103,7 @@ class RecoveryTests(unittest.TestCase):
             if Path(path).name == "RECOVERY.md":
                 raise PermissionError("card locked")
             return atomic(path, value)
-        with patch("cenacle.core.atomic", side_effect=fail_card):
+        with patch("vibeguild.core.atomic", side_effect=fail_card):
             result = self.p.command("checkpoint", {"body": "Committed recovery evidence"}, self.a["credential"], request_id="saved-once")
         self.assertIn("projection_warning", result)
         self.assertEqual("Committed recovery evidence", self.p.state["agents"][self.a["agent_id"]]["checkpoint"])

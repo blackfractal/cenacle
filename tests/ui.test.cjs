@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const nodes=new Map();
 function node(selector){if(!nodes.has(selector))nodes.set(selector,{innerHTML:'',value:'',scrollTop:0,scrollHeight:1000,clientHeight:400,removed:false,insertAdjacentHTML(_,html){this.innerHTML+=html;},remove(){this.removed=true;}});return nodes.get(selector);}
 const context=vm.createContext({console,Date,JSON,Number,String,Map,FormData:class{},document:{querySelector:node,addEventListener(){},activeElement:null},window:{},localStorage:{setItem(){},getItem(){return null;}},setTimeout,clearTimeout,fetch(){throw Error('Unexpected network in pure rendering tests');}});
-let source=fs.readFileSync(require('node:path').join(__dirname,'../cenacle/web/app.js'),'utf8').replace(/welcome\(\);\s*$/,'');
+let source=fs.readFileSync(require('node:path').join(__dirname,'../vibeguild/web/app.js'),'utf8').replace(/welcome\(\);\s*$/,'');
 vm.runInContext(source,context);
 const run=code=>vm.runInContext(code,context);
 run(`state={config:{project:{name:'Test',goal:'Build <parser>'},humans:[{id:'human',name:'Jonathan'}],general_context:'Shared context',policy:{},lead_agent_id:'a'},agents:{a:{id:'a',handle:'atlas',owner_id:'human',color:'#61d8bb',role:'lead',provider:'test',token_estimate:0,last_seen:Date.now()/1000,status:'ready',direct_room:'dm'}},control:{paused:false},rooms:{agent_chat:{id:'agent_chat',name:'agent_chat',kind:'global',members:[]}},tasks:{},votes:{},usage:{},activity:[]};project='test';`);
@@ -146,19 +146,19 @@ test('ordinary permission failures are not retried as expired sessions',async()=
 });
 test('default coordination path appends a subfolder without JSON-escaping the field',()=>{
   context.testWorkspace='C:\\Users\\black\\Jonathan\\DEV\\non-git\\SPARK_PLAN\\';
-  assert.equal(run('defaultCoordinationPath(testWorkspace)'),context.testWorkspace+'.cenacle');
+  assert.equal(run('defaultCoordinationPath(testWorkspace)'),context.testWorkspace+'.vibeguild');
   context.testWorkspace='\\\\server\\share\\code\\';
-  assert.equal(run('defaultCoordinationPath(testWorkspace)'),context.testWorkspace+'.cenacle');
-  assert.equal(run(`defaultCoordinationPath('/projects/code/')`),'/projects/code/.cenacle');
+  assert.equal(run('defaultCoordinationPath(testWorkspace)'),context.testWorkspace+'.vibeguild');
+  assert.equal(run(`defaultCoordinationPath('/projects/code/')`),'/projects/code/.vibeguild');
 });
 test('agent checkpoint pane exposes its emergency file',async()=>{
-  await run(`view='agent:a';selectedAgentPane='checkpoint';state.agents.a.recovery_file='C:/project/.cenacle/cenacle_files/agents/a/RECOVERY.md';state.agents.a.master_memory='C:/project/.cenacle/cenacle_files/agents/a/MEMORY.md';state.agents.a.memory_folder='C:/project/.cenacle/cenacle_files/agents/a/memory';state.agents.a.heartbeat_file='C:/project/.cenacle/cenacle_files/agents/a/HEARTBEAT.json';renderContent()`);
+  await run(`view='agent:a';selectedAgentPane='checkpoint';state.agents.a.recovery_file='C:/project/.vibeguild/vibeguild_files/agents/a/RECOVERY.md';state.agents.a.master_memory='C:/project/.vibeguild/vibeguild_files/agents/a/MEMORY.md';state.agents.a.memory_folder='C:/project/.vibeguild/vibeguild_files/agents/a/memory';state.agents.a.heartbeat_file='C:/project/.vibeguild/vibeguild_files/agents/a/HEARTBEAT.json';renderContent()`);
   assert(node('#stream').innerHTML.includes('data-act="rename-agent"'));
   assert(node('#agent-content').innerHTML.includes('Copy master memory path'));
   assert(node('#agent-content').innerHTML.includes('Copy memory folder path'));
   assert(node('#agent-content').innerHTML.includes('Copy heartbeat file path'));
   assert(node('#agent-content').innerHTML.includes('Copy recovery file path'));
-  assert(node('#agent-content').innerHTML.includes('C:/project/.cenacle/cenacle_files/agents/a/RECOVERY.md'));
+  assert(node('#agent-content').innerHTML.includes('C:/project/.vibeguild/vibeguild_files/agents/a/RECOVERY.md'));
   assert(node('#agent-content').innerHTML.includes('Agent-authored recovery claim'));
 });
 test('project pause is distinguished from an individual agent pause',()=>{

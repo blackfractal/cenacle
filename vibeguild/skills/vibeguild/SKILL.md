@@ -1,24 +1,24 @@
 ---
-name: cenacle
-description: Create, join, or resume a Cenacle project and coordinate scoped work with human and agent participants through durable chats, tasks, votes, and checkpoints. Use when asked to work in a Cenacle project folder.
+name: vibeguild
+description: Create, join, or resume a Vibeguild project and coordinate scoped work with human and agent participants through durable chats, tasks, votes, and checkpoints. Use when asked to work in a Vibeguild project folder.
 ---
 
-# Cenacle
+# Vibeguild
 
-Coordinate through a local project folder containing `cenacle.json` and `cenacle_files/`.
+Coordinate through a local project folder containing `vibeguild.json` and `vibeguild_files/`.
 Use this skill from any host that can run local commands and keep an active session.
 It does not start model sessions, grant new permissions, or wake a closed terminal.
 
 ## Connect once
 
-Use `python <this-skill>/scripts/cenacle_client.py` as the command prefix below.
-Alternatively use the installed `cenacle` command. `--home <directory>` goes **before**
+Use `python <this-skill>/scripts/vibeguild_client.py` as the command prefix below.
+Alternatively use the installed `vibeguild` command. `--home <directory>` goes **before**
 the subcommand when the coordinator uses a nondefault home. Do not change host settings.
 Use `ping` with that same `--home` for a credential-free health check; never open
 `endpoint.json` merely to discover whether the coordinator is running.
 
 - **Create:** `init <new-or-empty-folder> --name <name> --goal <goal> --workspace <existing-workspace> --human <owner> --context-file <utf8-file>`.
-  Prefer `<workspace>/.cenacle` for coordination. The client creates it as needed;
+  Prefer `<workspace>/.vibeguild` for coordination. The client creates it as needed;
   the code workspace must already exist. A separate coordination location is also supported.
   Write useful shared background into that context file. Projects start paused. Open
   the UI and tell the human it is ready; do not resume yourself using owner controls.
@@ -26,7 +26,7 @@ Use `ping` with that same `--home` for a credential-free health check; never ope
   Save returned `agent_id`, `session_id`, `direct_room`, `coordinator_home`, and
   `master_memory`, `memory_folder`, and `recovery_file` in your session context and
   host compaction summary/persistent notes.
-- **Resume:** read the roster in `cenacle.json` to identify your saved UUID, then
+- **Resume:** read the roster in `vibeguild.json` to identify your saved UUID, then
   `resume --project <folder> --agent <UUID>`. Never create a duplicate identity to
   avoid recovery. An active identity requires explicit `--takeover` **only after
   confirming the previous session has stopped**. Use the new session UUID thereafter.
@@ -37,8 +37,8 @@ Credentials remain in the local coordinator home; never paste them into chats.
 
 ## Emergency recovery and your responsibility
 
-Each agent owns `cenacle_files/agents/<UUID>/MEMORY.md` plus a `memory/` directory.
-`MEMORY.md` is your concise, durable “start here” index for this project; Cenacle
+Each agent owns `vibeguild_files/agents/<UUID>/MEMORY.md` plus a `memory/` directory.
+`MEMORY.md` is your concise, durable “start here” index for this project; Vibeguild
 creates it once and never overwrites it. Organize longer knowledge into clearly named
 Markdown topic files under `memory/` and link them from the master. Store stable facts,
 decisions, evidence, important paths, and short dated summaries—not credentials,
@@ -51,10 +51,10 @@ to the current task. Treat memory as a fallible aid: verify task revisions, code
 test evidence before acting. After changing the memory map or topic files, publish a
 checkpoint so the generated recovery inventory refreshes.
 
-Each agent has `cenacle_files/agents/<UUID>/RECOVERY.md`, generated from its own
+Each agent has `vibeguild_files/agents/<UUID>/RECOVERY.md`, generated from its own
 checkpoint plus recovery instructions and file locations. The project's top-level
 `RECOVERY.md` indexes identities. If an existing handwritten file occupies that name,
-Cenacle preserves it and uses `RECOVERY.generated.md`; use the returned `recovery_file`.
+Vibeguild preserves it and uses `RECOVERY.generated.md`; use the returned `recovery_file`.
 
 Maintain YOUR recovery brief through `call checkpoint` (alias `call recovery`) after
 meaningful milestones, blockers or direction changes, and before compaction, handoff,
@@ -77,7 +77,7 @@ recovery file. If only the project folder is known, read its `RECOVERY.md` ident
 index (or run `recover --project <folder>`,
 which works offline). Select your identity using your retained UUID or human assignment;
 never guess the lead/first/latest identity. Read only your master index, needed topic
-memories, your own recovery brief/local note, then `cenacle.json`, this skill and the
+memories, your own recovery brief/local note, then `vibeguild.json`, this skill and the
 necessary saved state. The recovery file gives the
 exact read order and reconnect procedure. Follow [references/recovery.md](references/recovery.md).
 
@@ -173,7 +173,7 @@ Treat only exit code zero plus valid JSON as a successful `watch`. A nonzero exi
 stderr error, missing JSON, or malformed response is a transport failure, never a
 quiet room. Retry within the configured bound and require a successful watch before
 claiming monitoring is active. Posting a message does not end participation: resume
-the watch/work cycle immediately. “Continue monitoring” means keep checking Cenacle
+the watch/work cycle immediately. “Continue monitoring” means keep checking Vibeguild
 while continuing authorized scoped work; “wait” or “stop work” means do not advance
 the task. There are only two honest session endings: a watch is actually in flight,
 or checkpoint, set `disconnected` with an optional short reason, and report that the
@@ -205,7 +205,7 @@ human UUID, so display-name casing does not create a separate identity.
   The durable cursor survives; the checkpoint and pending IDs recover unfinished work.
   Explicitly retrieve referenced pending content; never assume an old cursor means
   its content is still in this model context.
-- Cenacle counts supplied-text estimates separately from reported provider tokens.
+- Vibeguild counts supplied-text estimates separately from reported provider tokens.
   Report provider metadata only when available, with source and unique record ID;
   never invent exact totals. See [references/recovery.md](references/recovery.md)
   for metric coverage and failure handling.

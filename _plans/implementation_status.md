@@ -4,7 +4,7 @@ The user authorized building after the design discussion. The application and po
 skill are implemented. The older design documents include future specifications;
 this file and README describe the actual v0.1 boundary.
 
-Subsequent user clarification: coordination defaults to a dedicated `.cenacle`
+Subsequent user clarification: coordination defaults to a dedicated `.vibeguild`
 subfolder inside the existing code workspace, created automatically. A separately
 located coordination folder remains an option. This supersedes the original default
 of placing coordination outside the workspace.
@@ -12,7 +12,7 @@ of placing coordination outside the workspace.
 ## Delivered
 
 - Python loopback service, provider-neutral CLI, Windows launcher; no runtime dependencies.
-- **cenacle.json** with **general_context**, owner, UUID identities, lead and policy.
+- **vibeguild.json** with **general_context**, owner, UUID identities, lead and policy.
 - Atomic immutable events, integrity verification, exclusive-writer lock, idempotent
   mutations, repaired readable transcripts and per-agent/task/room/vote state files.
 - Worktree mappings, sequential shared editing task fallback, optimistic task revisions.
@@ -56,7 +56,7 @@ The runtime uses Python's standard library and plain HTML/CSS/JavaScript. Durabl
 are canonical, with a single write/notification service. No SQLite or frontend build
 chain is required. The shared editing lock is task-based and conservative.
 
-Agents create/merge Git worktrees with their existing tools. Cenacle maps distinct
+Agents create/merge Git worktrees with their existing tools. Vibeguild maps distinct
 workspace claims; a mapped folder is not proof that Git created it. It cannot stop
 an agent from writing outside its agreed workspace.
 
@@ -85,7 +85,7 @@ estimates only. Pause is cooperative, with no immediate termination claims.
 | Stale `working` can hide an abandoned in-flight task | Amber top-bar/roster alert for lost contact while working |
 | Clean exit and killed terminal looked identical | Explicit disconnected presence records and displays a clean sign-off |
 | Checkpoint prose can be mistaken for verified truth | Checkpoint pane labels it agent-authored and points to task/file/test evidence |
-| Health checks tempted agents to inspect a credential file | URL-only endpoint, public loopback health route, and `cenacle ping` |
+| Health checks tempted agents to inspect a credential file | URL-only endpoint, public loopback health route, and `vibeguild ping` |
 | Broken watch output was mistaken for a quiet room | Skill requires zero exit plus valid JSON and defines two honest session endings |
 
 Sources: [Codex notes](../_knowledge/codex_notes.md) and

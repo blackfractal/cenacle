@@ -3,17 +3,17 @@ requires = ["setuptools>=65"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cenacle"
+name = "vibeguild"
 version = "0.1.0"
 description = "A local collaboration room for humans and independent coding agents"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-cenacle = "cenacle.cli:main"
+vibeguild = "vibeguild.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["cenacle*"]
+include = ["vibeguild*"]
 
 [tool.setuptools.package-data]
-cenacle = ["web/*", "skills/cenacle/*", "skills/cenacle/references/*", "skills/cenacle/scripts/*"]
+vibeguild = ["web/*", "skills/vibeguild/*", "skills/vibeguild/references/*", "skills/vibeguild/scripts/*"]

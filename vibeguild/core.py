@@ -82,9 +82,9 @@ def number(value, label, low=0, high=10000000):
 
 def validate_config(config):
     if not isinstance(config, dict):
-        raise Problem("cenacle.json must contain a JSON object")
+        raise Problem("vibeguild.json must contain a JSON object")
     if config.get("schema_version") != 1:
-        raise Problem("Unsupported cenacle.json schema_version; expected 1")
+        raise Problem("Unsupported vibeguild.json schema_version; expected 1")
     p = config.get("project", {})
     text(p.get("name"), "project name", 120)
     text(p.get("goal"), "project goal", 20000)
@@ -151,7 +151,7 @@ class FileLock:
 class Project:
     def __init__(self, path, clock=time.time):
         self.path = Path(path).resolve()
-        self.files = self.path / "cenacle_files"
+        self.files = self.path / "vibeguild_files"
         self.clock = clock
         self.lock = threading.RLock()
         self.changed = threading.Condition(self.lock)
@@ -160,10 +160,10 @@ class Project:
         self.file_lock = None
         self.recovery_home = None
         try:
-            config = json.loads((self.path / "cenacle.json").read_text("utf-8"))
+            config = json.loads((self.path / "vibeguild.json").read_text("utf-8"))
             validate_config(config)
             if not self.files.is_dir():
-                raise Problem("Missing cenacle_files directory")
+                raise Problem("Missing vibeguild_files directory")
             self.file_lock = FileLock(self.files / "runtime" / "coordinator.lock")
             last = ""
             for file in sorted((self.files / "journal").glob("*.json")):
@@ -222,20 +222,20 @@ class Project:
     @classmethod
     def create(cls, path, name, goal, workspace, human="Jonathan", reference="", general_context=""):
         root = Path(path).expanduser().resolve()
-        if (root / "cenacle.json").exists():
-            raise Problem("This folder already contains a Cenacle project", 409)
+        if (root / "vibeguild.json").exists():
+            raise Problem("This folder already contains a Vibeguild project", 409)
         if root.exists() and any(root.iterdir()):
-            raise Problem("The coordination folder contains files. Choose an empty folder or a new .cenacle subfolder inside your workspace.")
+            raise Problem("The coordination folder contains files. Choose an empty folder or a new .vibeguild subfolder inside your workspace.")
         work = Path(workspace).expanduser().resolve()
         if work == root or not work.is_dir():
-            raise Problem("Choose an existing code/workspace folder. Keep coordination in its own subfolder, such as <workspace>/.cenacle.")
+            raise Problem("Choose an existing code/workspace folder. Keep coordination in its own subfolder, such as <workspace>/.vibeguild.")
         human_name = text(human, "human name", 80)
         config = {"schema_version": 1, "project": {"id": uid(), "name": name, "goal": goal, "workspace": str(work), "reference": reference},
                   "humans": [{"id": uid(), "name": human_name, "handle": handle_from_name(human_name)}], "general_context": general_context,
                   "agents": [], "lead_agent_id": None, "policy": copy.deepcopy(DEFAULT_POLICY), "notifications": copy.deepcopy(DEFAULT_NOTIFICATIONS)}
         validate_config(config)
-        (root / "cenacle_files" / "journal").mkdir(parents=True)
-        atomic(root / "cenacle.json", config)
+        (root / "vibeguild_files" / "journal").mkdir(parents=True)
+        atomic(root / "vibeguild.json", config)
         return cls(root)
 
     def close(self):
@@ -290,7 +290,7 @@ class Project:
         return {**copy.deepcopy(event["result"]), **({"credential": private_result["credential"]} if "credential" in private_result else {}), **({"projection_warning": projection_warning} if projection_warning else {})}
 
     def _project_config(self):
-        atomic(self.path / "cenacle.json", self.state["config"])
+        atomic(self.path / "vibeguild.json", self.state["config"])
 
     def _project_entities(self, changes):
         for kind in ("agents", "rooms", "tasks", "votes", "decisions", "reads"):
@@ -337,7 +337,7 @@ class Project:
         paths = {self.files / "agent_chat.txt", self.files / "agent_scratch.txt"}
         paths.update(self._transcript_path(m, m["kind"]) for m in self.messages)
         for path in paths:
-            atomic(path, b"CENACLE / readable projection; publish through the client.\n")
+            atomic(path, b"VIBEGUILD / readable projection; publish through the client.\n")
         for event in self.events:
             if event["kind"] in ("message", "note"):
                 self._append_transcript(event)

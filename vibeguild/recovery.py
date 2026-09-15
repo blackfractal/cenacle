@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-MARKER = "<!-- cenacle:recovery:v1 -->\n"
+MARKER = "<!-- vibeguild:recovery:v1 -->\n"
 
 
 def skill_path():
-    return Path(__file__).parent / "skills" / "cenacle" / "SKILL.md"
+    return Path(__file__).parent / "skills" / "vibeguild" / "SKILL.md"
 
 
 def recovery_path(project, agent_id=None):
@@ -49,14 +49,14 @@ def write_recovery(project, atomic):
 
 Immutable agent UUID: `{a['id']}`
 
-This is your durable, agent-owned index for this Cenacle project. Read it first
+This is your durable, agent-owned index for this Vibeguild project. Read it first
 when you are unsure where you are or what you were doing. Keep it concise and
 link to topic files under `memory/` instead of copying their full contents here.
 
 Start with [RECOVERY.md](RECOVERY.md) when restoring a session, identity, controls,
 checkpoint, or pending work. Record stable project knowledge, decisions, evidence,
 important paths, and a map of topic files below. Do not store credentials or private
-chain-of-thought. This file is visible to the human and is never overwritten by Cenacle.
+chain-of-thought. This file is visible to the human and is never overwritten by Vibeguild.
 
 `HEARTBEAT.json` records recent coordinator contact at most once per minute while
 the session watch loop is running. Its declared status is not proof of continued work.
@@ -66,12 +66,12 @@ the session watch loop is running. Its declared status is not proof of continued
 - No topic memories recorded yet.
 """.encode("utf-8"))
         path = recovery_path(project, a["id"])
-        rows.append(f'| {cell(a["handle"])} | {cell(a["role"])} | {a["id"]} | [{path.name}](cenacle_files/agents/{a["id"]}/{path.name}) |')
+        rows.append(f'| {cell(a["handle"])} | {cell(a["role"])} | {a["id"]} | [{path.name}](vibeguild_files/agents/{a["id"]}/{path.name}) |')
         publish(path, agent_recovery(project, a))
     index = "\n".join(rows) or "No agent identities have joined this project yet."
-    publish(recovery_path(project), f"""# Cenacle emergency recovery
+    publish(recovery_path(project), f"""# Vibeguild emergency recovery
 
-You are in a Cenacle coordination project. Read this index before resuming work.
+You are in a Vibeguild coordination project. Read this index before resuming work.
 Project: {cell(project.state['config']['project']['name'])}
 Project UUID: {project.id}
 
@@ -86,12 +86,12 @@ Project UUID: {project.id}
 |---|---|---|---|
 {index}
 
-Shared configuration: [cenacle.json](cenacle.json).
+Shared configuration: [vibeguild.json](vibeguild.json).
 Application skill on this machine: {skill_path().resolve()}
 
 The coordinator maintains these files; agents author their recovery brief through
 `call checkpoint` (or `call recovery`). When offline, each agent may maintain its own
-`cenacle_files/agents/<UUID>/RECOVERY.local.md`; Cenacle never rewrites that file.
+`vibeguild_files/agents/<UUID>/RECOVERY.local.md`; Vibeguild never rewrites that file.
 No host-specific automatic compaction hook is installed. Preserve your own recovery
 file path and identity in your host's compaction summary or persistent session notes.
 """)
@@ -106,7 +106,7 @@ def agent_recovery(project, a):
         "agent_id": a["id"], "short_name": a["handle"], "role": a["role"],
         "coordinator_home": str(project.recovery_home) if project.recovery_home else None,
         "skill_file": str(skill_path().resolve()),
-        "client_script": str((skill_path().parent / "scripts" / "cenacle_client.py").resolve()),
+        "client_script": str((skill_path().parent / "scripts" / "vibeguild_client.py").resolve()),
         "recovery_file": str(recovery_path(project, a["id"])),
         "master_memory": str(memory_index_path(project, a["id"])),
         "memory_folder": str(memory_dir),
@@ -146,7 +146,7 @@ read credential files into model context or paste them into a chat.
 2. Read the saved checkpoint below. If `RECOVERY.local.md` exists beside this file,
    read it too; it may contain unpublished work. Compare dates/evidence with live
    state. Do not assume either note is automatically newer or authoritative.
-3. Read [cenacle.json](../../../cenacle.json), especially `general_context`, goal,
+3. Read [vibeguild.json](../../../vibeguild.json), especially `general_context`, goal,
    roster and policy. Confirm this UUID is the identity the human assigned you.
 4. Read `skill_file` above and its `references/recovery.md` for the full procedure.
 5. If you need more saved fields, read [state.json](state.json). Working notes,

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from cenacle.core import Project, Problem, atomic, encoded
+from vibeguild.core import Project, Problem, atomic, encoded
 
 
 class StoreTests(unittest.TestCase):
@@ -183,7 +183,7 @@ class StoreTests(unittest.TestCase):
         self.p.command("settings", {"general_context": "Newest context"}, human=True)
         path = self.p.path
         self.p.close()
-        atomic(path / "cenacle.json", old_config)
+        atomic(path / "vibeguild.json", old_config)
         self.p = Project(path, clock=lambda: self.now)
         self.assertEqual("Newest context", self.p.state["config"]["general_context"])
 
@@ -192,7 +192,7 @@ class StoreTests(unittest.TestCase):
         config = copy.deepcopy(self.p.state["config"])
         self.p.close()
         config["general_context"] = "Offline amendment"
-        atomic(path / "cenacle.json", config)
+        atomic(path / "vibeguild.json", config)
         self.p = Project(path, clock=lambda: self.now)
         self.assertTrue(self.p.state["control"]["paused"])
         self.assertEqual("Offline amendment", self.p.state["config"]["general_context"])

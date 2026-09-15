@@ -10,18 +10,18 @@ Maintain separate measurements; never present them as interchangeable:
 
 | Metric | Meaning | Evidence |
 | --- | --- | --- |
-| Cenacle content supplied | Bytes and model-specific token count/estimate of the actual CLI/bridge response supplied to an agent | Measured serialized response; this does not prove the model retained it |
-| Repeated Cenacle content | Content ranges already supplied to the same context generation, supplied again | Delivery manifest matching stable source IDs, revisions, and ranges |
+| Vibeguild content supplied | Bytes and model-specific token count/estimate of the actual CLI/bridge response supplied to an agent | Measured serialized response; this does not prove the model retained it |
+| Repeated Vibeguild content | Content ranges already supplied to the same context generation, supplied again | Delivery manifest matching stable source IDs, revisions, and ranges |
 | Provider usage | Provider-reported input/output and any available cache/reasoning breakdown | Host/adapter usage record with source and coverage |
 | Current context occupancy | Host-reported current context usage, if available | Host measurement; otherwise unknown, not reconstructed from a read cursor |
 
 A precise token count requires the appropriate model tokenizer and known serialization boundaries. When unavailable, show a labeled estimate with its method, or only a byte count. A count of tool-response text does not include unknown host wrappers, instructions, code reads, or retained conversation history. Do not label it total session usage.
 
-Even when Cenacle does not supply the same message twice, a host may reuse retained conversation context in subsequent requests. Cached input, new content supplied, accumulated input usage, and current context occupancy are different quantities. Cenacle controls its own payloads; it cannot promise zero recurring input cost or control when an arbitrary host compacts its conversation.
+Even when Vibeguild does not supply the same message twice, a host may reuse retained conversation context in subsequent requests. Cached input, new content supplied, accumulated input usage, and current context occupancy are different quantities. Vibeguild controls its own payloads; it cannot promise zero recurring input cost or control when an arbitrary host compacts its conversation.
 
 Provider input/output records carry provider/model, agent ID, session ID, context generation, run/attempt IDs where known, source event ID, reported time, source kind, and coverage. Preserve the provider's raw numeric fields and units. Normalize only when semantics are known. Cached input may be a subset of input; reasoning may be a subset of output. Do not add overlapping fields twice. Do not infer a dollar amount without a known pricing basis; monetary accounting is secondary and optional.
 
-Deduplicate usage records across retries and reconnects. Distinguish per-turn deltas from cumulative snapshots; never sum cumulative totals. A counter reset starts a new measurement epoch rather than creating negative usage. Aggregate measured usage separately from estimates and self-reports, with missing agents/periods visible. Room-level accounting can accurately describe Cenacle content supplied by room; whole model-turn usage may span many rooms and must remain unattributed unless an attribution method is stated.
+Deduplicate usage records across retries and reconnects. Distinguish per-turn deltas from cumulative snapshots; never sum cumulative totals. A counter reset starts a new measurement epoch rather than creating negative usage. Aggregate measured usage separately from estimates and self-reports, with missing agents/periods visible. Room-level accounting can accurately describe Vibeguild content supplied by room; whole model-turn usage may span many rooms and must remain unattributed unless an attribution method is stated.
 
 ## 2. Durable state and context generations
 
@@ -85,7 +85,7 @@ Summaries retain source IDs and an explicit covered-through revision. Prefer upd
 
 ## 4. Config and client surface
 
-Put context payload settings in each project's `cenacle.json`, separate from per-agent inactivity/reporting settings and bounded follow-up/retry policy. Illustrative proposed values:
+Put context payload settings in each project's `vibeguild.json`, separate from per-agent inactivity/reporting settings and bounded follow-up/retry policy. Illustrative proposed values:
 
 ```toml
 [context]
@@ -97,9 +97,9 @@ max_response_bytes = 32768
 history_default_messages = 20
 ```
 
-Token targets bound Cenacle-supplied text, not the host's total context window. Use an identified tokenizer where supported; otherwise return the estimate basis and enforce the independent byte ceiling. Budget complete serialized envelopes and metadata, not just bodies. Control events have a small reserved path; an exhausted content allowance must still permit pause/resume acknowledgments and bounded recovery information. Exact numeric defaults should be tuned in the pilot.
+Token targets bound Vibeguild-supplied text, not the host's total context window. Use an identified tokenizer where supported; otherwise return the estimate basis and enforce the independent byte ceiling. Budget complete serialized envelopes and metadata, not just bodies. Control events have a small reserved path; an exhausted content allowance must still permit pause/resume acknowledgments and bounded recovery information. Exact numeric defaults should be tuned in the pilot.
 
-The user confirmed tracking with optional configurable pause budgets. Represent each budget with enabled state, scope (run/project or agent within the run), metric (`cenacle_supplied_estimate` versus `provider_reported_usage`), numeric ceiling, and coverage. Keep limits disabled until configured; tracking remains active. Reaching a selected budget persists an exhaustion event, blocks new coordinated work for the affected scope, and requests next-checkpoint pause. Bounded recovery/control acknowledgments remain available. A human can explicitly increase or disable the budget and resume; ordinary messages and agent restarts cannot reset it.
+The user confirmed tracking with optional configurable pause budgets. Represent each budget with enabled state, scope (run/project or agent within the run), metric (`vibeguild_supplied_estimate` versus `provider_reported_usage`), numeric ceiling, and coverage. Keep limits disabled until configured; tracking remains active. Reaching a selected budget persists an exhaustion event, blocks new coordinated work for the affected scope, and requests next-checkpoint pause. Bounded recovery/control acknowledgments remain available. A human can explicitly increase or disable the budget and resume; ordinary messages and agent restarts cannot reset it.
 
 Never enforce an estimate as though it were an exact provider spend limit. Manual hosts may report late or not at all; show unknown/overrun possibility rather than silently displaying zero. A provider-usage budget with unavailable telemetry is visibly unenforceable; proposed fail-closed behavior is to withhold new work until the human selects an available metric or disables that limit. Do not silently substitute estimates for an unavailable chosen metric. Do not reset usage counters on identity, room, or session changes. Test threshold crossings, delayed/duplicate reports, budget edits, and the recovery allowance without pretending that a manual host can be instantly terminated.
 
@@ -112,7 +112,7 @@ No speculative scraping/import of entire native conversation logs is required. A
 Add compact project/run and agent token summaries with details on demand:
 
 - Provider-reported input/output where available, labeled cache/reasoning breakdowns, coverage and reporting freshness.
-- Cenacle text supplied and repeat-supply metrics, measured tokens or clearly marked estimates, and useful attribution by room/artifact.
+- Vibeguild text supplied and repeat-supply metrics, measured tokens or clearly marked estimates, and useful attribution by room/artifact.
 - Current context occupancy only if the host exposes it; otherwise Unknown.
 - Configured context payload targets and any user-selected warning/pause budgets, plus a reason for any token-triggered pause.
 
@@ -127,7 +127,7 @@ The full human activity feed is independent of the agent's context payload. Look
 5. A resumed identity keeps delivery history but starts a new context generation. The client supplies the recovery package and needed evidence despite earlier-generation reads, without replaying every old chat.
 6. A changed role/config/code revision invalidates the relevant cached reference. Unchanged references do not trigger redundant full loads. Missing or contradictory instructions are resolved before action.
 7. Standard token counts match known fixtures for a supported tokenizer; unknown tokenizers use labeled estimates/bytes. Provider usage duplication, cumulative snapshots, reporting gaps, counter resets, and overlapping categories do not inflate totals or fabricate precision.
-8. Cenacle counters do not masquerade as total provider usage, and monitoring UI activity does not inject context. Usage/control bookkeeping cannot create an agent-to-agent feedback loop.
+8. Vibeguild counters do not masquerade as total provider usage, and monitoring UI activity does not inject context. Usage/control bookkeeping cannot create an agent-to-agent feedback loop.
    In a completion-announcement scenario, unrelated agents produce no acknowledgment chatter; assigned review and substantive direct questions remain actionable. Keep receipt/no-response bookkeeping outside public chat payloads.
 9. Run deterministic 1-, 4-, and 20-agent traces with a long preexisting archive. Measure actual text supplied, repeated source ranges, wait overhead observable through the host, bootstrap size, and indexing cost. After initial load, repeated normal reads must not scale with total historical transcript length.
 10. The real coding pilot exercises create/join/resume, scratch retrieval, a direct human instruction, and a known context reset where the host permits it. Preserve measured data and limitations; do not invent a percentage reduction or claim complete cost accounting from partial coverage.

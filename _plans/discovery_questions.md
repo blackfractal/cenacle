@@ -1,4 +1,4 @@
-# Cenacle discovery questions
+# Vibeguild discovery questions
 
 Status: initial answers recorded; 2026-09-13. These questions refine [implementation_plan.md](implementation_plan.md). Answer open questions in any order or by ID. Defaults are recommendations, not decisions. Not every preference must be settled before starting implementation; the architecture questions should be settled first.
 
@@ -11,7 +11,7 @@ Q41 is answered: one designated lead per project, with the human retaining final
 1. **Q01 — Agent authority — ANSWERED:** Work autonomously within a scoped task; ask before destructive or external actions. Specific treatment of local installs/commits/merges can be clarified in setup; existing host permissions still apply.
 2. **Q02 — Session management — ANSWERED:** V1 coordinates sessions the human starts independently. No launching/supervision in v1.
 3. **Q03 — Stop guarantee — ANSWERED:** Next-checkpoint pause is acceptable for v1, for individual agents and the whole project. Immediate pause may be added later as a separate control backed by actual host interruption; do not require process supervision for v1.
-4. **Q04 — Workspace ownership — ANSWERED:** Separate Git worktrees by default, with a shared-directory fallback for sequential work. All worktrees point to one common Cenacle coordination folder. Integration still needs ownership and shared services need coordination.
+4. **Q04 — Workspace ownership — ANSWERED:** Separate Git worktrees by default, with a shared-directory fallback for sequential work. All worktrees point to one common Vibeguild coordination folder. Integration still needs ownership and shared services need coordination.
 5. **Q05 — Coordination style — RESOLVED THROUGH Q41:** One designated lead has final say in agent disagreements within scope; the human retains final authority. A council is deferred. Distinguish the lead's decision authority from an optional orchestrator's scheduling role; one agent may perform both.
 6. **Q06 — Response routing — ANSWERED:** Agents autonomously decide whether to respond to global `agent_chat`. Direct messages from the human or another agent normally deserve a response unless there is no useful reply, such as "I'm writing up what you requested, stand by." The user reinforced that a completion announcement such as "I've completed the UI for this tool" should not elicit "I see the completed tool" from every agent. Teach useful contribution rather than acknowledgment chatter; assigned review and substantive questions remain actionable. Do not impose mention-only global routing.
 7. **Q07 — What counts as done:** Should you define acceptance criteria before each run, can an agent draft them for you, and who can declare the project complete? Proposed default: agent drafts allowed, human objective retained, results linked to verification.
@@ -30,9 +30,9 @@ Q41 is answered: one designated lead per project, with the human retaining final
 
 15. **Q15 — Platforms — ANSWERED:** Windows only initially. Keep future macOS, Linux, and WSL support in mind, with platform-specific code isolated from the protocol.
 16. **Q16 — Installation:** Is a Python command acceptable? Would you prefer an npm command, a packaged executable, or another installation style? Proposed default: one launch command serving a browser UI.
-17. **Q17 — Project location — PARTLY ANSWERED:** The Cenacle coordination folder is separate and points to code somewhere else. No repo-local default. Still open: whether one project needs to cover multiple code repositories in v1; start with an explicit external workspace binding.
+17. **Q17 — Project location — PARTLY ANSWERED:** The Vibeguild coordination folder is separate and points to code somewhere else. No repo-local default. Still open: whether one project needs to cover multiple code repositories in v1; start with an explicit external workspace binding.
 18. **Q18 — File contract — ANSWERED / DESIGN CHOSEN:** The user leaves this open to the most appropriate pattern; files may be structured JSON and need not be free-flow text. Design choice: immutable JSON event files, publication through the CLI/service, and generated readable `.txt` transcripts. This simplifies parsing/identity/cursors and isolates atomic publication per event. The number of small files is a tradeoff to measure. The user permits the format choice but did not specifically prescribe this exact layout.
-19. **Q19 — Config style:** Is TOML inside `cenacle.json` comfortable, or do you prefer YAML, JSON, or another format? Proposed default: roster and short roles in the top-level file, longer role instructions in separate Markdown files.
+19. **Q19 — Config style:** Is TOML inside `vibeguild.json` comfortable, or do you prefer YAML, JSON, or another format? Proposed default: roster and short roles in the top-level file, longer role instructions in separate Markdown files.
 20. **Q20 — Git and retention:** Should chat/history/notes be committed with code, live outside Git, or be selectively exported? Should original messages ever be deleted, and how should secret redaction work? Proposed default: runtime/cache excluded; transcript retention chosen explicitly.
 21. **Q21 — First scale — PARTLY ANSWERED:** Minimum 1 agent, typical 3-4, and about 20 as the initial upper sizing target, with room to grow. Do not hardcode 20 as a lifetime identity limit. Room count, simultaneous projects, and typical scratch sizes are still open; directories must scale beyond a handful of chats.
 
@@ -56,11 +56,11 @@ Q41 is answered: one designated lead per project, with the human retaining final
 
 ## Pilot and priorities
 
-34. **Q34 — First real task:** What actual coding change should the first implementer/reviewer pair complete? Who implements, who reviews, and what result would make you say Cenacle helped?
+34. **Q34 — First real task:** What actual coding change should the first implementer/reviewer pair complete? Who implements, who reviews, and what result would make you say Vibeguild helped?
 35. **Q35 — First milestone priority:** Is your first priority reliable CLI/skill collaboration, a polished human UI, or a small end-to-end slice with both? Proposed default: a thin complete chat slice followed by recovery/safety before autonomous work.
 36. **Q36 — Unacceptable failure:** Which is worst for you: missed messages, duplicate coding work, agents spending too long, too many permission questions, or hard-to-follow chatter? Rank them or name another; this shapes the pilot checks.
 37. **Q37 — ChatGPT access — ANSWERED:** Keep the skill generic; defer a specific ChatGPT integration. No ChatGPT connector/host implementation is required in v1. Portable instructions still document the capability contract for any participating host.
-38. **Q38 — Tokens and context — ANSWERED:** Track usage and allow optional configurable pause budgets. Token count is important, and the skill must teach precise context management to avoid unnecessary rereading. The procedure is in [context_and_tokens.md](context_and_tokens.md). Numeric thresholds are selected through configuration, not imposed universally. Keep provider usage separate from Cenacle payload counts/estimates and explicitly show unknown coverage.
+38. **Q38 — Tokens and context — ANSWERED:** Track usage and allow optional configurable pause budgets. Token count is important, and the skill must teach precise context management to avoid unnecessary rereading. The procedure is in [context_and_tokens.md](context_and_tokens.md). Numeric thresholds are selected through configuration, not imposed universally. Keep provider usage separate from Vibeguild payload counts/estimates and explicitly show unknown coverage.
 
 ## Timed votes
 
@@ -79,7 +79,7 @@ Q41 is answered: one designated lead per project, with the human retaining final
 | Scoped autonomy; ask before destructive/external actions | Q01 response, 2026-09-13 | Requirements, ownership/authority rules, M0 |
 | Coordinate sessions the user starts; no session management in v1 | Q02 response, 2026-09-13 | Scope, release boundary, M0/M3; managed supervision stays future work |
 | Agents judge global-message relevance; normally answer substantive DMs; skip empty acknowledgments | Q06 response, 2026-09-13 | Requirements and inbox/routing behavior |
-| Settings live in `cenacle.json`; 60 minutes is per-agent incoming inactivity, with a stand-by report near the interval when still working; no review-cycle limit | Q08 initial response and later explicit clarifications, 2026-09-13 | Supersedes prior three-cycle default and run-duration/15-minute-idle proposals; separate incoming/report clocks and role-independent blocked-work behavior |
+| Settings live in `vibeguild.json`; 60 minutes is per-agent incoming inactivity, with a stand-by report near the interval when still working; no review-cycle limit | Q08 initial response and later explicit clarifications, 2026-09-13 | Supersedes prior three-cycle default and run-duration/15-minute-idle proposals; separate incoming/report clocks and role-independent blocked-work behavior |
 | UI pauses/resumes all agents and individual agents independently of terminals, at the next checkpoint for v1 | Q08 follow-up and explicit pause answer, 2026-09-13 | Requirements, control state composition, work-boundary checks, requested/acknowledged UI, M3, verification; immediate pause is future work |
 | Separate notes and direct human-agent chat within each agent tab | Q28 response, 2026-09-13 | Requirements, room model, agent-space UI |
 | Windows only for v1; preserve a path toward macOS/Linux/WSL | Setup response / Q15, 2026-09-13 | Requirements, scope, platform interfaces, setup and later milestones |

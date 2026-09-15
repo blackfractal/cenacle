@@ -1,4 +1,4 @@
-# Cenacle
+# Vibeguild
 
 A local collaboration room for a human and independently started coding agents.
 Windows first. Python 3.11+; no runtime dependencies, model SDKs or API keys.
@@ -16,9 +16,9 @@ From this repository:
 
 This starts the loopback coordinator and opens `http://127.0.0.1:4310`. Keep that
 terminal running. If the coordinator is already running, open that URL instead.
-Choose a folder containing **cenacle.json**, or create a new project by choosing
-your existing code workspace. The default coordination folder is **<workspace>\.cenacle**;
-Cenacle creates it automatically when you submit. An existing empty coordination folder
+Choose a folder containing **vibeguild.json**, or create a new project by choosing
+your existing code workspace. The default coordination folder is **<workspace>\.vibeguild**;
+Vibeguild creates it automatically when you submit. An existing empty coordination folder
 is also accepted, and you can choose a different location if needed.
 
 Use **Browse** beside a folder field to open the native Windows folder picker.
@@ -26,7 +26,7 @@ This is available when opening a project, choosing its empty coordination folder
 selecting an existing code workspace, and changing the workspace in Settings.
 Cancelling preserves your form. Native dialogs require Python's Tcl/Tk component
 (included in the standard Windows installer); paths can also be entered manually.
-The workspace must already exist; the coordination folder need not. Keep `.cenacle/`
+The workspace must already exist; the coordination folder need not. Keep `.vibeguild/`
 out of source commits when using Git. Start the server from your own terminal with
 `start.cmd` so it can access your chosen workspace; a server started inside an agent's
 restricted sandbox inherits that sandbox's filesystem restrictions.
@@ -38,38 +38,38 @@ one another's browser session.
 For a headless start:
 
 ```powershell
-python -m cenacle --home .local/runtime serve --port 4310
+python -m vibeguild --home .local/runtime serve --port 4310
 ```
 
 `start.cmd` uses this repository's `.local/runtime` as its coordinator home. Agents
 must use that same absolute `--home` path. Without `--home`, the CLI defaults to
-`%USERPROFILE%\.cenacle`; do not mix the two homes.
+`%USERPROFILE%\.vibeguild`; do not mix the two homes.
 
-Optional installation for a `cenacle` command available outside the repository:
+Optional installation for a `vibeguild` command available outside the repository:
 
 ```powershell
 python -m pip install .
-cenacle serve --browser
+vibeguild serve --browser
 ```
 
 ## Bring your agents
 
 Install the same portable skill into each host's skills folder. The installer creates
-a `cenacle` subfolder and refuses to overwrite an existing skill.
+a `vibeguild` subfolder and refuses to overwrite an existing skill.
 
 ```powershell
 # Examples; choose your host's actual skills directory.
-python -m cenacle install-skill --dest "$env:USERPROFILE\.agents\skills"
-python -m cenacle install-skill --dest "$env:USERPROFILE\.claude\skills"
+python -m vibeguild install-skill --dest "$env:USERPROFILE\.agents\skills"
+python -m vibeguild install-skill --dest "$env:USERPROFILE\.claude\skills"
 ```
 
-The [skill](cenacle/skills/cenacle/SKILL.md) can also be loaded manually by any host
+The [skill](vibeguild/skills/vibeguild/SKILL.md) can also be loaded manually by any host
 that can run local commands. A specific ChatGPT integration is deferred.
 
 Start your Codex/Claude/etc. sessions yourself and give each a prompt such as:
 
-> Use the Cenacle skill. Join project `C:\path\to\coordination-folder` as `builder`,
-> role `implementer`. The coordinator home is `C:\path\to\cenacle\.local\runtime`.
+> Use the Vibeguild skill. Join project `C:\path\to\coordination-folder` as `builder`,
+> role `implementer`. The coordinator home is `C:\path\to\vibeguild\.local\runtime`.
 > Read the goal and general context. Work within the assigned scope, monitor its
 > conversations, and honor human pause controls. Ask before destructive or external actions.
 
@@ -113,8 +113,8 @@ and explicit range retrieval.
 
 ```text
 my-project/
-  cenacle.json                   # goal, general_context, owner, roster, lead, policy
-  cenacle_files/
+  vibeguild.json                   # goal, general_context, owner, roster, lead, policy
+  vibeguild_files/
     journal/                     # numbered immutable JSON events; canonical state
     agent_chat.txt               # readable transcript projection
     agent_scratch.txt
@@ -143,7 +143,7 @@ the roster or journal.
 Each agent may atomically maintain only its own `MEMORY.md`, files under its own
 `memory/` directory, and offline `RECOVERY.local.md`. These are visible working
 knowledge, not transport files or private reasoning. The master memory stays concise
-and links topic files for selective post-compaction reads. Cenacle creates it once,
+and links topic files for selective post-compaction reads. Vibeguild creates it once,
 never overwrites it, and lists topic filenames in the generated recovery card after
 the agent checkpoints.
 
@@ -161,13 +161,13 @@ agent inbox.
 Each project also has a top-level `RECOVERY.md` identity index. Agents maintain their
 own emergency brief with `call checkpoint` (alias `call recovery`); the file points to
 the skill, coordinator, configuration and saved state, and records the next action.
-`python -m cenacle recover --project <folder> [--agent <UUID>]` reads it without a server.
+`python -m vibeguild recover --project <folder> [--agent <UUID>]` reads it without a server.
 The UI's agent checkpoint pane exposes its path. Offline notes are never overwritten;
 existing handwritten recovery files are preserved alongside `RECOVERY.generated.md`.
 See [emergency recovery in QUICKSTART](QUICKSTART.md#emergency-recovery-after-compaction-or-a-lost-session).
 
 For editing, agents create their own Git worktree with installed Git, map it through
-`call workspace`, then claim a task. Cenacle does not create/merge branches. Shared
+`call workspace`, then claim a task. Vibeguild does not create/merge branches. Shared
 directory mode admits one editing task at a time; read-only tasks can use
 `editing:false`. These are cooperative workflow controls, not interception of filesystem writes.
 
@@ -191,13 +191,13 @@ An explicit disconnected presence records a clean sign-off and is displayed sepa
 from a dormant profile or stale active session. Checkpoints are labeled as agent-authored
 claims that must be verified against task, file and test evidence.
 
-`cenacle ping` reads a URL-only `endpoint-public.json` and calls an unauthenticated
+`vibeguild ping` reads a URL-only `endpoint-public.json` and calls an unauthenticated
 loopback health endpoint. Agents never need to inspect the credential-bearing
 `endpoint.json` just to test coordinator availability. Client transport failures use
 nonzero exit status and JSON errors on stderr; malformed output is never quiet activity.
 
 **Token accounting:** supplied-text estimates (UTF-8 bytes / 4) are separate from
-host-reported input/output. Optional per-agent pause budgets cover Cenacle supplied
+host-reported input/output. Optional per-agent pause budgets cover Vibeguild supplied
 text only; one final payload may cross the threshold. Empty polls and control
 notifications are excluded. Other model/tool/file context is outside coverage.
 This is not exact whole-session token or spend enforcement.
@@ -226,7 +226,7 @@ not modify the external personal-assistant project. Connect real agents when rea
 ```powershell
 python -B -W error::ResourceWarning -m unittest discover -s tests -v
 node --test tests/ui.test.cjs
-node --check cenacle/web/app.js
+node --check vibeguild/web/app.js
 ```
 
 Python tests cover storage, concurrency, fencing, recovery, pause, budgets, votes,
@@ -238,4 +238,4 @@ remain to be performed.
 
 See [implementation status](_plans/implementation_status.md), the
 [design plan](_plans/implementation_plan.md), and the
-[command reference](cenacle/skills/cenacle/references/commands.md).
+[command reference](vibeguild/skills/vibeguild/references/commands.md).

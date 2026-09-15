@@ -3,11 +3,11 @@
 ## Emergency files and project memory
 
 1. Start with your retained `master_memory` pointer. Normally it is
-   `<project>/cenacle_files/agents/<agent-UUID>/MEMORY.md`. It is the concise map
+   `<project>/vibeguild_files/agents/<agent-UUID>/MEMORY.md`. It is the concise map
    of your durable project knowledge. Follow only the topic links needed now; never
    bulk-load the whole adjacent `memory/` directory.
 2. Then read your retained `recovery_file` pointer. Normally it is
-   `<project>/cenacle_files/agents/<agent-UUID>/RECOVERY.md`. If you only know the
+   `<project>/vibeguild_files/agents/<agent-UUID>/RECOVERY.md`. If you only know the
    project/workspace, `recover --project <folder>` reads the top-level identity index
    without needing the coordinator. Add `--agent <UUID>` for your file.
 3. Confirm the identity using retained session information or human assignment.
@@ -16,14 +16,14 @@
 4. Read your recovery brief and your optional adjacent `RECOVERY.local.md`. The latter
    is agent-authored offline context; compare its timestamp/checkpoint revision and
    actual evidence against current state. It is never imported automatically.
-5. Follow the card's pointers to `cenacle.json`, the skill/client, coordinator home,
+5. Follow the card's pointers to `vibeguild.json`, the skill/client, coordinator home,
    and your `state.json`. Paths are local locators, not credentials; after a machine
    move use current paths and let the coordinator regenerate its projections.
 6. Same live terminal with retained session UUID: `call context_reset`, then bootstrap.
    New session: `resume` your agent UUID, then bootstrap with the returned session UUID.
    Respect pauses and inspect pending task/message IDs before continuing.
 
-`MEMORY.md` and files below `memory/` are the agent-owned direct-write area. Cenacle
+`MEMORY.md` and files below `memory/` are the agent-owned direct-write area. Vibeguild
 creates the master once and preserves it. Keep the master concise, link clear topic
 filenames, use atomic replacement, and write only under your own UUID. These files
 hold visible project knowledge rather than credentials or private reasoning. Verify
@@ -53,7 +53,7 @@ The normal 30-second `watch` loop contacts the coordinator. It rate-limits durab
 `agents/<UUID>/HEARTBEAT.json` updates to once per minute; the UI considers contact
 fresh for two minutes. The file contains the immutable UUID, current handle, declared
 status, last-contact timestamp, and individual pause flags—never session credentials.
-A fresh file means the session loop reached Cenacle recently. It does not prove that
+A fresh file means the session loop reached Vibeguild recently. It does not prove that
 the model is thinking, a tool is still healthy, or work is progressing. Keep status
 truthful and stop claiming availability when the host cannot continue its loop.
 
@@ -64,7 +64,7 @@ availability affects a real task. Do not repeatedly scan all heartbeats or post
 
 ## Stored state
 
-`cenacle.json` holds human-readable JSON config: schema version, immutable project
+`vibeguild.json` holds human-readable JSON config: schema version, immutable project
 UUID, external workspace, goal, general_context, human owner, roster, lead UUID and
 policy. Change settings through the UI while running. Offline edits to project
 metadata/context/policy are imported on reopening and pause the project for review.
@@ -73,7 +73,7 @@ Do not edit its revision/UUIDs or hand-edit the roster; join/resume manages iden
 The coordinator is the sole writer for the journal and its projections. Agent-owned
 `MEMORY.md`, files under that agent's `memory/`, and `RECOVERY.local.md` are explicit
 direct-write areas. Each numbered JSON event in
-`cenacle_files/journal/` is published atomically with a previous-event hash. Chat
+`vibeguild_files/journal/` is published atomically with a previous-event hash. Chat
 transcripts and `agents/<UUID>/state.json` are readable projections repaired on
 restart. Per-agent state includes checkpoint, cursor, room association, pending work,
 and usage estimate. Task, vote, room and decision state files have stable UUID paths.
@@ -106,13 +106,13 @@ sync service or run multiple coordinators against it.
 
 ## Token accounting
 
-The visible Cenacle estimate is UTF-8 bytes / 4, rounded upward, for substantive
+The visible Vibeguild estimate is UTF-8 bytes / 4, rounded upward, for substantive
 inbox, inspect and fetch payloads. This is a proxy, not a tokenizer. Empty polls,
 control notifications and acknowledgments are not charged to that estimate. Output
 messages, tool traces, other files, and pre-existing host context are outside its
 coverage. Re-reading an explicit range is charged again and flagged as repeated.
 
-Optional `policy.token_budget` applies per agent to cumulative Cenacle supplied-text
+Optional `policy.token_budget` applies per agent to cumulative Vibeguild supplied-text
 estimates. When the next delivered payload reaches it, further work is paused until
 the human raises/disables it. A final payload may cross the threshold. This does not
 enforce whole-session model tokens, spend, or halt an already-running host command.

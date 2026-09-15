@@ -10,7 +10,7 @@ Jonathan wanted Claude to implement the personal-assistant plan and Codex to rev
 
 The agents were separate sessions coordinated by files. Codex did not spawn Claude as a subagent, send it collaboration-tool messages, or start its CLI. Updating the agreed handoff file was the communication channel. Both sessions had to remain active and watch their incoming file.
 
-This distinction matters for Cenacle: writing a message does not itself guarantee the recipient is running, has seen it, or has begun work.
+This distinction matters for Vibeguild: writing a message does not itself guarantee the recipient is running, has seen it, or has begun work.
 
 ## The protocol Jonathan actually authorized
 
@@ -68,7 +68,7 @@ The complete-message marker was useful human-readable evidence, but our monitor 
 - A sender cannot tell from publication alone whether the recipient consumed it.
 - A restarted session may lose its in-memory "last seen" state.
 
-The JavaScript orchestration store was convenient for the current round, digest and deadline, but it did not survive every resumed turn. We rebuilt state from the actual handoff files and conversation history. It should not be Cenacle's durable source of truth.
+The JavaScript orchestration store was convenient for the current round, digest and deadline, but it did not survive every resumed turn. We rebuilt state from the actual handoff files and conversation history. It should not be Vibeguild's durable source of truth.
 
 ## Sleep, missed watches and timing corrections
 
@@ -100,7 +100,7 @@ Jonathan had not authorized heartbeat updates to extend the one-hour deadline. C
 
 Jonathan later asked why the file existed; Codex explained this distinction. No new heartbeat policy was adopted.
 
-For Cenacle, separate **message delivery**, **turn ownership**, **liveness**, and **deadline policy**. A heartbeat can show that a process is alive without proving useful progress, receipt of a specific message, or permission to extend a deadline. An agent-created status file must not silently become a new coordination authority.
+For Vibeguild, separate **message delivery**, **turn ownership**, **liveness**, and **deadline policy**. A heartbeat can show that a process is alive without proving useful progress, receipt of a specific message, or permission to extend a deadline. An agent-created status file must not silently become a new coordination authority.
 
 ## What made the reviews useful
 
@@ -233,7 +233,7 @@ Stopping should mean one of:
 
 Test counts, elapsed effort, or one accepted subsystem were not evidence that phases 1 and 2 were complete. As of this note, Phase 2 was still in progress.
 
-## Recommendations for Cenacle -- not changes already adopted
+## Recommendations for Vibeguild -- not changes already adopted
 
 ### Make coordination a small durable state machine
 

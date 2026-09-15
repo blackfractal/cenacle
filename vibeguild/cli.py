@@ -25,12 +25,12 @@ def request(endpoint, route, body, credential=None):
             detail = json.load(exc)
         raise Problem(detail.get("error", str(exc)), exc.code)
     except urllib.error.URLError as exc:
-        raise Problem("Coordinator unavailable. Start 'cenacle serve'; do not repeatedly post presence questions. " + str(exc.reason))
+        raise Problem("Coordinator unavailable. Start 'vibeguild serve'; do not repeatedly post presence questions. " + str(exc.reason))
 
 
 def parser():
-    p = argparse.ArgumentParser(prog="cenacle", description="Local conversations for independent agents")
-    p.add_argument("--home", help="Local endpoint/credential directory; defaults to ~/.cenacle")
+    p = argparse.ArgumentParser(prog="vibeguild", description="Local conversations for independent agents")
+    p.add_argument("--home", help="Local endpoint/credential directory; defaults to ~/.vibeguild")
     sub = p.add_subparsers(dest="command", required=True)
     serve = sub.add_parser("serve", help="Start the loopback app; open the printed URL")
     serve.add_argument("--port", type=int, default=4310)
@@ -50,7 +50,7 @@ def parser():
     doctor.add_argument("--project")
     sub.add_parser("ping", help="Check coordinator health without reading a credential")
     recover = sub.add_parser("recover", help="Read the project/agent recovery file, even when the coordinator is offline")
-    recover.add_argument("--project", required=True, help="Coordination folder or workspace containing .cenacle")
+    recover.add_argument("--project", required=True, help="Coordination folder or workspace containing .vibeguild")
     recover.add_argument("--agent", help="Your immutable agent UUID; omit to read the identity index")
     for name in ("open", "join", "resume", "inbox", "watch", "fetch", "inspect", "call"):
         cmd = sub.add_parser(name)
@@ -96,13 +96,13 @@ def main(argv=None):
             stream.reconfigure(encoding="utf-8")
     args = parser().parse_args(argv)
     if args.home:
-        os.environ["CENACLE_HOME"] = str(Path(args.home).resolve())
+        os.environ["VIBEGUILD_HOME"] = str(Path(args.home).resolve())
     try:
         if args.command == "serve":
             server = make_server(args.port)
             if args.project:
                 server.app.open(args.project)
-            print(f"Cenacle is ready: http://127.0.0.1:{server.server_address[1]}\nKeep this process running. Ctrl+C stops the coordinator, not your agent terminals.", flush=True)
+            print(f"Vibeguild is ready: http://127.0.0.1:{server.server_address[1]}\nKeep this process running. Ctrl+C stops the coordinator, not your agent terminals.", flush=True)
             if args.browser:
                 import webbrowser
                 webbrowser.open(f"http://127.0.0.1:{server.server_address[1]}")
@@ -120,26 +120,26 @@ def main(argv=None):
                 with urllib.request.urlopen(public_endpoint["url"] + "/api/health", timeout=3) as response:
                     health = json.load(response)
             except (OSError, ValueError, KeyError, urllib.error.URLError) as exc:
-                raise Problem("Coordinator unavailable. Start 'cenacle serve' with this --home. " + str(exc))
-            if health.get("ok") is not True or health.get("service") != "cenacle":
+                raise Problem("Coordinator unavailable. Start 'vibeguild serve' with this --home. " + str(exc))
+            if health.get("ok") is not True or health.get("service") != "vibeguild":
                 raise Problem("Unexpected response from coordinator health endpoint")
             result = {"connected": True, "endpoint": public_endpoint["url"], "service": health["service"], "version": health["version"]}
         elif args.command == "init":
             context = Path(args.context_file).read_text("utf-8") if args.context_file else ""
             p = Project.create(args.path, args.name, args.goal, args.workspace, args.human, args.reference, context)
-            result = {"project_id": p.id, "path": str(p.path), "config": str(p.path / "cenacle.json"), "paused": True}
+            result = {"project_id": p.id, "path": str(p.path), "config": str(p.path / "vibeguild.json"), "paused": True}
             p.close()
         elif args.command == "recover":
             root = Path(args.project).expanduser().resolve()
-            if not (root / "cenacle.json").is_file() and (root / ".cenacle" / "cenacle.json").is_file():
-                root = root / ".cenacle"
-            config = json.loads((root / "cenacle.json").read_text("utf-8"))
+            if not (root / "vibeguild.json").is_file() and (root / ".vibeguild" / "vibeguild.json").is_file():
+                root = root / ".vibeguild"
+            config = json.loads((root / "vibeguild.json").read_text("utf-8"))
             folder = root
             if args.agent:
                 uuid.UUID(args.agent)
                 if not any(a["id"] == args.agent for a in config["agents"]):
                     raise Problem("This agent UUID is not in the project's roster")
-                folder = root / "cenacle_files" / "agents" / args.agent
+                folder = root / "vibeguild_files" / "agents" / args.agent
             path = folder / "RECOVERY.generated.md"
             if not path.is_file():
                 path = folder / "RECOVERY.md"
@@ -148,10 +148,10 @@ def main(argv=None):
             print(path.read_text("utf-8"))
             return
         elif args.command == "install-skill":
-            target = Path(args.dest).expanduser().resolve() / "cenacle"
+            target = Path(args.dest).expanduser().resolve() / "vibeguild"
             if target.exists():
                 raise Problem("Skill already exists at destination; inspect it before replacing")
-            shutil.copytree(Path(__file__).parent / "skills" / "cenacle", target)
+            shutil.copytree(Path(__file__).parent / "skills" / "vibeguild", target)
             # The standalone launcher resolves the installed app without depending on host CWD.
             atomic(target / "scripts" / "app.json", {"python": sys.executable, "app_root": str(Path(__file__).parent.parent)})
             result = {"installed": str(target)}
@@ -159,7 +159,7 @@ def main(argv=None):
             try:
                 endpoint = json.loads((home() / "endpoint.json").read_text("utf-8"))
             except (OSError, ValueError):
-                raise Problem("Start 'python -m cenacle serve' first (or use the same --home as the server)")
+                raise Problem("Start 'python -m vibeguild serve' first (or use the same --home as the server)")
             project_arg = getattr(args, "project", None)
             if args.command == "doctor" and not project_arg:
                 result = {"endpoint": endpoint["url"], "python": sys.executable, "version": "0.1.0", "credential_directory": str(home()), "note": "Use --project to verify the connection and project."}

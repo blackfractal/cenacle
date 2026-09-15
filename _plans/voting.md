@@ -36,7 +36,7 @@ Ballot changes are allowed while open, retaining revision history and counting o
 
 ## Durable records and race handling
 
-Use the existing coordinator/journal, not a separate authoritative voting database. Events include `vote_opened`, `vote_ballot_cast`, `vote_closed`, and `vote_cancelled`. A rebuilt `cenacle_files/state/votes.json` can serve the UI; readable transcripts include the question, ballot/result references, and final tally.
+Use the existing coordinator/journal, not a separate authoritative voting database. Events include `vote_opened`, `vote_ballot_cast`, `vote_closed`, and `vote_cancelled`. A rebuilt `vibeguild_files/state/votes.json` can serve the UI; readable transcripts include the question, ballot/result references, and final tally.
 
 Vote metadata includes vote/project/source-room IDs, creator identity/session, optional task/run reference, question, stable option IDs, electorate UUIDs/human IDs, timing, rules, revision, and status. Ballots include vote ID, voter identity, optional agent session generation, option ID or explicit Abstain, optional rationale, revision, commit time, and idempotency key. The server authenticates the voter using the existing session; a short name or UUID supplied as text is not proof of identity.
 

@@ -21,7 +21,7 @@ class OwnerSessionRequired(Problem):
 
 
 def home():
-    return Path(os.environ.get("CENACLE_HOME", str(Path.home() / ".cenacle"))).resolve()
+    return Path(os.environ.get("VIBEGUILD_HOME", str(Path.home() / ".vibeguild"))).resolve()
 
 
 class Coordinator:
@@ -66,7 +66,7 @@ class Coordinator:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "Cenacle/0.1"
+    server_version = "Vibeguild/0.1"
 
     def log_message(self, *_):
         pass
@@ -84,7 +84,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         if cookie:
-            self.send_header("Set-Cookie", f"cenacle_{self.server.server_address[1]}={self.app.web_token}; HttpOnly; SameSite=Strict; Path=/")
+            self.send_header("Set-Cookie", f"vibeguild_{self.server.server_address[1]}={self.app.web_token}; HttpOnly; SameSite=Strict; Path=/")
         self.end_headers()
         try:
             self.wfile.write(raw)
@@ -104,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
             raise Problem("Cross-site access denied", 403)
         bearer = self.headers.get("Authorization", "").removeprefix("Bearer ")
         cookies = dict(c.strip().split("=", 1) for c in self.headers.get("Cookie", "").split(";") if "=" in c)
-        human = secrets.compare_digest(bearer, self.app.secret) or secrets.compare_digest(cookies.get(f"cenacle_{port}", ""), self.app.web_token)
+        human = secrets.compare_digest(bearer, self.app.secret) or secrets.compare_digest(cookies.get(f"vibeguild_{port}", ""), self.app.web_token)
         return human, bearer
 
     def do_GET(self):
@@ -113,11 +113,11 @@ class Handler(BaseHTTPRequestHandler):
             url = urlparse(self.path)
             query = {k: v[0] for k, v in parse_qs(url.query).items()}
             if url.path == "/api/session":
-                if self.headers.get("X-Cenacle-UI") != "1":
-                    raise Problem("Use the local Cenacle interface to reconnect", 403)
+                if self.headers.get("X-Vibeguild-UI") != "1":
+                    raise Problem("Use the local Vibeguild interface to reconnect", 403)
                 return self.respond(200, {"ok": True}, cookie=True)
             if url.path == "/api/health":
-                return self.respond(200, {"ok": True, "service": "cenacle", "version": "0.1.0"})
+                return self.respond(200, {"ok": True, "service": "vibeguild", "version": "0.1.0"})
             if not url.path.startswith("/api/"):
                 allowed = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8")}
                 if url.path not in allowed:
@@ -195,11 +195,11 @@ class Handler(BaseHTTPRequestHandler):
                 entries = []
                 for f in base.iterdir():
                     if f.is_dir() and not f.name.startswith("."):
-                        entries.append({"name": f.name, "path": str(f), "project": (f / "cenacle.json").is_file()})
-                return self.respond(200, {"path": str(base), "parent": str(base.parent), "folders": sorted(entries, key=lambda e: e["name"].casefold())[:300], "project": (base / "cenacle.json").is_file()})
+                        entries.append({"name": f.name, "path": str(f), "project": (f / "vibeguild.json").is_file()})
+                return self.respond(200, {"path": str(base), "parent": str(base.parent), "folders": sorted(entries, key=lambda e: e["name"].casefold())[:300], "project": (base / "vibeguild.json").is_file()})
             if path == "/api/create":
                 with self.app.lock:
-                    project_path = args.get("path") or str(Path(args["workspace"]).expanduser() / ".cenacle")
+                    project_path = args.get("path") or str(Path(args["workspace"]).expanduser() / ".vibeguild")
                     p = self.app.add(Project.create(project_path, args["name"], args["goal"], args["workspace"], args.get("human", "Human"), args.get("reference", ""), args.get("general_context", "")))
                 return self.respond(200, {"project": p.id})
             if path == "/api/open":

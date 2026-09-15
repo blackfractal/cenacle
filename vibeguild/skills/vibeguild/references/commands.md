@@ -3,7 +3,7 @@
 Every example below assumes this PowerShell prefix from the skill directory:
 
 ```powershell
-$client = "<absolute-path-to-skill>/scripts/cenacle_client.py"
+$client = "<absolute-path-to-skill>/scripts/vibeguild_client.py"
 $project = "<coordination-folder>"
 $agent = "<agent_id returned by join/resume>"
 $session = "<session_id returned by join/resume>"
@@ -79,7 +79,7 @@ excluded from peer inboxes. Clear it with null if the response is abandoned.
 
 Offline recovery: `recover --project <folder>` reads the identity index without a
 server or credentials. Add `--agent <UUID>` to read your emergency file. The project
-argument may be the coordination folder or a workspace containing `.cenacle`.
+argument may be the coordination folder or a workspace containing `.vibeguild`.
 This read-only command does not resume a session or authorize work.
 
 ```powershell
@@ -103,7 +103,7 @@ First inspect repository instructions and the working tree. For editing, create 
 independent branch/worktree in an authorized location using installed Git:
 
 ```powershell
-git -C "<source-repository>" worktree add -b "cenacle/<short-name>-<task-suffix>" "<new-worktree-path>"
+git -C "<source-repository>" worktree add -b "vibeguild/<short-name>-<task-suffix>" "<new-worktree-path>"
 ```
 
 Map that existing path with `call workspace`, then claim your task. The coordinator

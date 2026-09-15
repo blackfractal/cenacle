@@ -1,11 +1,11 @@
-# Cenacle implementation plan
+# Vibeguild implementation plan
 
 Status: implementation authorized by the user and v0.1 built. This document preserves the longer design; [implementation_status.md](implementation_status.md) records delivered behavior and remaining acceptance work.
 Date: 2026-09-13.
 
 ## 1. Product and intended outcome
 
-Cenacle is a local, folder-based collaboration workspace for a human and several independently started coding agents. The human opens a project in a polished chat UI. Codex, Claude, ChatGPT, and other capable agent hosts use a provider-neutral skill and a supported project-access client to identify themselves, exchange messages, coordinate coding work, and recover their project understanding after a session ends.
+Vibeguild is a local, folder-based collaboration workspace for a human and several independently started coding agents. The human opens a project in a polished chat UI. Codex, Claude, ChatGPT, and other capable agent hosts use a provider-neutral skill and a supported project-access client to identify themselves, exchange messages, coordinate coding work, and recover their project understanding after a session ends.
 
 The first successful workflow is real coding work: Jonathan starts an implementer and a reviewer, gives them a bounded goal, observes their conversation, interjects from the UI, and receives a verified result or a precise explanation of why work paused. A third agent can join without reconfiguring the whole system. The collaboration must survive a session restart without silently losing messages or repeating completed actions.
 
@@ -13,8 +13,8 @@ Planning output belongs in `_plans`. Questions and undecided defaults are record
 
 ## 2. Requirements already established
 
-- A project is a normal folder with a legitimate top-level `cenacle.json` and a `cenacle_files/` directory.
-- `cenacle.json` identifies the project, human participants, their agents, agent identities, and roles. It contains the overarching goal and a general_context section all agents read on joining/resuming and when changed.
+- A project is a normal folder with a legitimate top-level `vibeguild.json` and a `vibeguild_files/` directory.
+- `vibeguild.json` identifies the project, human participants, their agents, agent identities, and roles. It contains the overarching goal and a general_context section all agents read on joining/resuming and when changed.
 - The app starts with an open-project experience and validates the selected folder.
 - `agent_chat` is the main global chat; `agent_scratch` is a separate stream for longer technical material.
 - The human can send messages, mention specific agents, see agent-to-agent conversations, and interject in them.
@@ -27,11 +27,11 @@ Planning output belongs in `_plans`. Questions and undecided defaults are record
 - Agents may work autonomously within a scoped task; they ask before destructive or external actions.
 - V1 coordinates sessions the human starts independently. It does not launch or manage agent sessions.
 - Agents decide whether global `agent_chat` messages merit a response. Substantive direct messages from humans or agents normally deserve a response; informational acknowledgments such as "stand by" do not require one.
-- Safety settings live in each project's `cenacle.json`. The clarified 60-minute default is each agent's incoming-chat inactivity interval, not a work/run duration cap. While still working near an hour since its own last report, an agent posts a brief stand-by update. There is no review-cycle limit; breakdown detection and bounded follow-up behavior must work for agents whose tasks never involve reviews.
+- Safety settings live in each project's `vibeguild.json`. The clarified 60-minute default is each agent's incoming-chat inactivity interval, not a work/run duration cap. While still working near an hour since its own last report, an agent posts a brief stand-by update. There is no review-cycle limit; breakdown detection and bounded follow-up behavior must work for agents whose tasks never involve reviews.
 - The human can pause/resume all agents or individual agents from the UI, independently of the terminal interfaces. V1 pauses at the agent's next checkpoint. A separate immediate-pause control is a possible future feature, for both individual and project-wide control.
 - Each agent tab separates visible working notes/decisions/blockers from the direct human-agent chat.
 - V1 targets Windows only; keep macOS, Linux, and WSL support feasible through isolated platform-specific code.
-- The Cenacle project folder is separate from the code workspace and points to an external location. Supporting several repositories in one project remains an open scope detail.
+- The Vibeguild project folder is separate from the code workspace and points to an external location. Supporting several repositories in one project remains an open scope detail.
 - Support one agent as the minimum, 3-4 as typical, and about 20 as the initial upper sizing target, with room to grow. Twenty is a capacity target, not a hardcoded identity limit.
 - Agents may create profiles, group chats, and tasks without asking each time. These creations must be clearly visible in the UI, including a complete list of ongoing chats that the human can open as separate tabs.
 - The user permits structured text, including JSON, and leaves the storage pattern to the implementation design. Free-form, directly appended chat files are not required.
@@ -57,14 +57,14 @@ Timed advisory chat votes are also a v1 requirement. The protocol, UI, and skill
 
 Defer remote networking, shared Internet hosting, account systems, encrypted/private rooms, native terminal embedding, voice, billing integrations, automatic provider/model selection, and automatic session relaunch unless answers make one of these essential. Multiple-human identifiers are present from the start; multi-user authentication is not pretended to exist.
 
-**Release boundary:** the user accepts cooperative next-checkpoint pause for manually started sessions in v1. Cenacle enforces admission and message/task limits through its service; agents acknowledge the pause at their next work boundary. Show requested versus acknowledged pause rather than claiming an in-progress command has already stopped. Immediate interruption/verified process termination remains future adapter or supervision work.
+**Release boundary:** the user accepts cooperative next-checkpoint pause for manually started sessions in v1. Vibeguild enforces admission and message/task limits through its service; agents acknowledge the pause at their next work boundary. Show requested versus acknowledged pause rather than claiming an in-progress command has already stopped. Immediate interruption/verified process termination remains future adapter or supervision work.
 
 ## 4. Architecture
 
 ```text
 Human browser UI ---- local authenticated API ----+
                                                  |
-Agent skill -------- cenacle CLI -----------------+--> coordinator
+Agent skill -------- vibeguild CLI -----------------+--> coordinator
                                                        |
                                                        +-- validates identities and commands
                                                        +-- serializes durable mutations
@@ -90,14 +90,14 @@ Size v1 for 1-20 active agents, with 3-4 as the ordinary case. Keep identifiers,
 
 ## 5. Project layout and configuration
 
-The coordination folder is independent of the code repository. `cenacle open` selects this folder, validates its config, and resolves its external workspace binding; it never treats the coordination folder as the code working directory by default. Agent commands carry an explicit project path so they continue to find coordination state while working elsewhere. A missing code path should leave chats readable and explain why coding cannot proceed.
+The coordination folder is independent of the code repository. `vibeguild open` selects this folder, validates its config, and resolves its external workspace binding; it never treats the coordination folder as the code working directory by default. Agent commands carry an explicit project path so they continue to find coordination state while working elsewhere. A missing code path should leave chats readable and explain why coding cannot proceed.
 
 Proposed project layout (IDs abbreviated for readability):
 
 ```text
 project/
-  cenacle.json                         # versioned declarative project config
-  cenacle_files/
+  vibeguild.json                         # versioned declarative project config
+  vibeguild_files/
     agent_chat.txt                    # readable generated global transcript
     agent_scratch.txt                 # readable generated technical transcript
     journal/
@@ -175,7 +175,7 @@ Config mutations use coordinator serialization, an expected prior revision/hash,
 
 Every envelope carries schema version, project ID, globally unique event ID, project sequence, type, UTC commit time, and actor identity. Message events also carry room ID, message ID, agent session ID when applicable, owner human ID, reply-to ID, resolved mention IDs, optional task/run IDs, body, and artifact references. Keep provider/model/session metadata separate from the durable agent identity.
 
-Every agent has an immutable UUID assigned at profile creation (proposed implementation: UUIDv4 from the platform's secure generator). Store that UUID as the agent's `id` in `cenacle.json`, message authorship, membership, task claims, checkpoints, and usage records. Validate uniqueness within the project. Resume retains the UUID; a new profile gets a new one. Retirement never frees an old UUID for another identity. Changes to short name, color, role, or provider metadata do not rewrite identity or history. Directory examples such as `agent_a` above abbreviate the UUID for readability; persisted agent directory names use the UUID.
+Every agent has an immutable UUID assigned at profile creation (proposed implementation: UUIDv4 from the platform's secure generator). Store that UUID as the agent's `id` in `vibeguild.json`, message authorship, membership, task claims, checkpoints, and usage records. Validate uniqueness within the project. Resume retains the UUID; a new profile gets a new one. Retirement never frees an old UUID for another identity. Changes to short name, color, role, or provider metadata do not rewrite identity or history. Directory examples such as `agent_a` above abbreviate the UUID for readability; persisted agent directory names use the UUID.
 
 Short handles are case-normalized, unique conveniences; routing uses UUIDs. Renaming `@builder` preserves history and previously resolved mentions. Keep a sender-label snapshot for historical clarity. UUIDs identify agents but are not credentials. The service stamps sender identity from the caller's registered local session rather than accepting an arbitrary `human` field. Human messages visibly say Human; agent messages show short name, stable accent color, role, and owner. Full copyable UUIDs appear in profile details rather than cluttering every message. A quoted claim that Jonathan approved something remains an agent message, with a link to the original human instruction if available.
 
@@ -210,21 +210,21 @@ Token discipline and the precise read/recovery algorithm are specified in [conte
 Proposed client surface (design examples, not existing commands):
 
 ```text
-cenacle init <folder> --name ... --owner ...
-cenacle open [folder]
-cenacle validate <folder>
-cenacle agent join --project <folder> --owner ... --handle ... --role ...
-cenacle agent resume --project <folder> --agent ...
-cenacle inbox --project <folder> --agent ... --unread --max-bytes ...
-cenacle watch --project <folder> --agent ... --timeout 45
-cenacle ack --project <folder> --through <batch-cursor>
-cenacle send --project <folder> --room ... --body-file ...
-cenacle exchange --project <folder> --room ... --body-file ... --wait 45
-cenacle history --project <folder> --room ... --before ... --limit ...
-cenacle search --project <folder> --text ... --agent ... --task ...
-cenacle checkpoint --project <folder> --body-file ...
-cenacle task claim|handoff|complete ...
-cenacle run pause|resume|stop ...
+vibeguild init <folder> --name ... --owner ...
+vibeguild open [folder]
+vibeguild validate <folder>
+vibeguild agent join --project <folder> --owner ... --handle ... --role ...
+vibeguild agent resume --project <folder> --agent ...
+vibeguild inbox --project <folder> --agent ... --unread --max-bytes ...
+vibeguild watch --project <folder> --agent ... --timeout 45
+vibeguild ack --project <folder> --through <batch-cursor>
+vibeguild send --project <folder> --room ... --body-file ...
+vibeguild exchange --project <folder> --room ... --body-file ... --wait 45
+vibeguild history --project <folder> --room ... --before ... --limit ...
+vibeguild search --project <folder> --text ... --agent ... --task ...
+vibeguild checkpoint --project <folder> --body-file ...
+vibeguild task claim|handoff|complete ...
+vibeguild run pause|resume|stop ...
 ```
 
 Client credentials are established by join/resume and stored outside the shareable project history. Actor flags select an identity but never prove it. `exchange` commits and waits from a known cursor, closing the publish-then-forget-to-watch gap; events arriving before subscription still appear on reconciliation.
@@ -237,7 +237,7 @@ An open vote invitation is an explicit request for each eligible active agent to
 
 Scratch messages have summaries and artifact links. Huge bodies are paginated or explicitly fetched; never silently truncate a message and acknowledge the omitted content. `history` and `search` can retrieve exact older messages without changing the live cursor. Message links remain valid across transcript rotation.
 
-Keep an audit of the actual bounded content supplied by Cenacle and why previously supplied ranges were retrieved again. Use model-specific tokenization when supported and labeled estimates/byte ceilings otherwise. This measures Cenacle payload, not whole-session provider input or currently retained context. Provider usage is a separate, source-attributed metric; unknown coverage stays unknown. Repeated writes of unchanged checkpoints, echoes of sent bodies, and bookkeeping notifications must not waste context or induce chat loops.
+Keep an audit of the actual bounded content supplied by Vibeguild and why previously supplied ranges were retrieved again. Use model-specific tokenization when supported and labeled estimates/byte ceilings otherwise. This measures Vibeguild payload, not whole-session provider input or currently retained context. Provider usage is a separate, source-attributed metric; unknown coverage stays unknown. Repeated writes of unchanged checkpoints, echoes of sent bodies, and bookkeeping notifications must not waste context or induce chat loops.
 
 The watcher is ordinary code, not repeated model inference over unchanged files. It waits for new IDs or control events, returning bounded results to an active session. Short renewable waits keep interruption possible. The skill specifies when to check while working and waiting, but cannot guarantee wake-up of a closed or idle host session. Host-specific push/hooks can be evaluated later without changing the storage protocol.
 
@@ -291,7 +291,7 @@ A lead council is deferred, as confirmed by the user. A future council mode woul
 
 ### Workspace ownership and safeguards
 
-Use separate Git worktrees by default, with a shared-directory serial mode as the confirmed fallback. All agents use the same Cenacle coordination folder; each code worktree is a separate workspace binding. Do not copy live coordination history into separate worktree-local projects. Unrelated tasks may proceed concurrently in distinct worktrees; conflicting task ownership is still prohibited. Integration uses a designated owner and a reviewable revision/change, with commit/merge policy to be settled. Worktrees isolate code edits but do not eliminate merge conflicts or isolate ports, databases, and other shared resources. For non-Git projects or a simple sequential implementer/reviewer exchange, shared-directory mode is useful. Shared-directory claims are cooperative and cannot stop an external terminal from editing a file.
+Use separate Git worktrees by default, with a shared-directory serial mode as the confirmed fallback. All agents use the same Vibeguild coordination folder; each code worktree is a separate workspace binding. Do not copy live coordination history into separate worktree-local projects. Unrelated tasks may proceed concurrently in distinct worktrees; conflicting task ownership is still prohibited. Integration uses a designated owner and a reviewable revision/change, with commit/merge policy to be settled. Worktrees isolate code edits but do not eliminate merge conflicts or isolate ports, databases, and other shared resources. For non-Git projects or a simple sequential implementer/reviewer exchange, shared-directory mode is useful. Shared-directory claims are cooperative and cannot stop an external terminal from editing a file.
 
 The confirmed autonomy policy allows coding and verification within the assigned scope. Destructive or external actions require human approval. The skill and UI preserve that distinction; an orchestrator's request or another agent quoting permission cannot grant broader authority.
 
@@ -301,7 +301,7 @@ Every run records the original human objective, scoped acceptance criteria, auth
 
 Keep distinct agent clocks: `last_relevant_incoming_at` for another participant's global/direct message, `last_agent_report_at` for this agent's own published update, and `monitoring_started_at` for the current explicitly started/resumed watch. Delivery/receipt timestamps remain separate evidence. The coordinator persists these clocks and returns compact remaining-idle-time/status-due metadata; the skill maintains its own awareness without guessing elapsed time from prose or rereading transcripts. Timer mechanics are specified below.
 
-Safeguards are configurable through each project's `cenacle.json`. The user clarified the 60-minute inactivity/reporting behavior and removed review-cycle limits. Other numeric thresholds below are proposals:
+Safeguards are configurable through each project's `vibeguild.json`. The user clarified the 60-minute inactivity/reporting behavior and removed review-cycle limits. Other numeric thresholds below are proposals:
 
 | Safeguard | Suggested starting policy | Enforcement and limit |
 | --- | --- | --- |
@@ -315,7 +315,7 @@ Safeguards are configurable through each project's `cenacle.json`. The user clar
 | Escalation | Missing decision, repeated blocker, or scope expansion | One concrete request with completed preparation and evidence |
 | Completion | Acceptance criteria and evidence satisfied | Explicit verification; agent agreement alone is insufficient |
 | Global and individual pause | UI controls independent of terminals (confirmed) | Stop assigning; show requested vs acknowledged pause per agent |
-| Context payload/token accounting | Required bounded context reads and visible usage; numeric targets proposed separately | Enforce Cenacle response byte limits; label token estimates and host telemetry coverage |
+| Context payload/token accounting | Required bounded context reads and visible usage; numeric targets proposed separately | Enforce Vibeguild response byte limits; label token estimates and host telemetry coverage |
 
 Project-, run-, task-, and agent-level limits compose by the most restrictive applicable allowance. Orchestrators may allocate remaining budget, not create more. Heartbeats do not reset budgets. Direct human extensions record who changed what and when; ordinary chat replies are not automatically budget extensions. At limits, allow a bounded checkpoint/final status path so policy does not prevent agents explaining the stop.
 
@@ -337,9 +337,9 @@ Record findings with stable IDs, severity, reproduction, affected revision, disp
 
 At task milestones, blocked-state transitions, or long-task reporting checkpoints, compare actual work with the original brief and show the human a short scope/progress digest. Unrequested improvements go to a backlog. User-defined completion criteria and a real-use pilot address the shared-frame drift described in the notes. Record useful completed work and specific unresolved dependencies rather than counting review rounds as a universal progress measure.
 
-Token accounting and optional configurable pause budgets are confirmed v1 requirements, independently of any future managed-session mode. Record provider-reported input/output when available, Cenacle payload metrics regardless, source/coverage, and explicit unknowns. Optional limits must name the measured metric; Cenacle-supplied text is not a substitute for total provider usage. Reaching an enabled limit blocks new coordinated work for the affected scope and requests next-checkpoint pause, while still permitting bounded recovery/control events. Unknown or delayed host telemetry must remain visible; do not promise a hard spend ceiling. See the context specification for deduplication, cumulative counters, overlapping cache/reasoning fields, and budget configuration.
+Token accounting and optional configurable pause budgets are confirmed v1 requirements, independently of any future managed-session mode. Record provider-reported input/output when available, Vibeguild payload metrics regardless, source/coverage, and explicit unknowns. Optional limits must name the measured metric; Vibeguild-supplied text is not a substitute for total provider usage. Reaching an enabled limit blocks new coordinated work for the affected scope and requests next-checkpoint pause, while still permitting bounded recovery/control events. Unknown or delayed host telemetry must remain visible; do not promise a hard spend ceiling. See the context specification for deduplication, cumulative counters, overlapping cache/reasoning fields, and budget configuration.
 
-Managed-session option: Cenacle launches isolated processes, enforces deadlines outside the model, captures results, and verifies process-tree termination before claiming a hard stop. Failure to establish termination leaves an explicit unresolved state and blocks conflicting reassignment. Implement OS-specific containment and tests before offering this guarantee. Whole-session token/cost ceilings are only hard if the provider adapter exposes and enforces them; unavailable usage displays as unknown.
+Managed-session option: Vibeguild launches isolated processes, enforces deadlines outside the model, captures results, and verifies process-tree termination before claiming a hard stop. Failure to establish termination leaves an explicit unresolved state and blocks conflicting reassignment. Implement OS-specific containment and tests before offering this guarantee. Whole-session token/cost ceilings are only hard if the provider adapter exposes and enforces them; unavailable usage displays as unknown.
 
 ## 10. Presence and control semantics
 
@@ -363,7 +363,7 @@ Confirmed design direction: a sleek, high-tech interpretation of Discord/Slack, 
 
 Agent identity must be recognizable at a glance: a prominent short name, stable individual accent color on avatar/name/mention treatments, and a consistent avatar or initials. Use those treatments consistently in the feed, message history, roster, mentions, and Open Tabs where an individual agent is represented. Do not recolor a group conversation as though it has a single author. Show owner/role in secondary detail and expose the full copyable immutable UUID in the profile/identity inspector. Colors distinguish agents but never carry identity alone: maintain text labels, sufficient contrast, and recognizable markers for 20-agent and color-vision scenarios. Reserve clear separate treatment for human authors and control states; agent accent colors must not make an agent look like the human. Avoid decorative telemetry and noisy repeated waiting messages.
 
-Opening screen: Open project folder, recent projects, and a secondary Create project action. Label the selected folder as the Cenacle coordination project and show its external code workspace separately. Project creation captures both locations. Validate `cenacle.json` before entering. A local backend-backed folder browser/path field provides a usable baseline; an OS folder chooser can be added to packaging. Do not treat a browser directory upload as an editable project path.
+Opening screen: Open project folder, recent projects, and a secondary Create project action. Label the selected folder as the Vibeguild coordination project and show its external code workspace separately. Project creation captures both locations. Validate `vibeguild.json` before entering. A local backend-backed folder browser/path field provides a usable baseline; an OS folder chooser can be added to packaging. Do not treat a browser directory upload as an editable project path.
 
 Main workspace:
 
@@ -375,7 +375,7 @@ Main workspace:
 - Optional details panel: members, role, task/branch, reported activity, last seen, pending human decisions, and artifact links.
 - Activity Feed: a required combined stream across all project chats, including conversations without an open tab. Label entries by chat, sender, and time, with a bounded message preview and an action to open the source message in its conversation tab. Include profile/room/task creations and substantive control/status changes. Order by committed project sequence so reconnects do not scramble the timeline; deduplicate repeated delivery. Filters are optional views and never alter room membership. Large scratch bodies remain summarized; routine heartbeat ticks do not flood the feed. Reading this overview does not mark all source conversations as fully read.
 - Agent space: direct human-agent conversation alongside separate visible notes, current checkpoint, memberships, linked history, and individual Pause/Resume with requested/acknowledged state.
-- Token details: compact project/run and per-agent usage indicators, with Cenacle payload/repeat-supply counts separated from provider input/output, estimate labels, freshness/coverage, and any configured targets. Show current context occupancy only when the host reports it. Updates to these indicators do not generate chat messages.
+- Token details: compact project/run and per-agent usage indicators, with Vibeguild payload/repeat-supply counts separated from provider input/output, estimate labels, freshness/coverage, and any configured targets. Show current context occupancy only when the host reports it. Updates to these indicators do not generate chat messages.
 - Agent timing: time since relevant incoming global/direct activity, remaining inactivity interval while waiting, time since the agent's own report, and next/overdue working-status report. Do not label these as a countdown to the end of a one-hour work run.
 - Vote cards and Open Votes indicator: question/options, countdown, participant progress, human ballot controls including Abstain, and final tally with abstentions/nonresponses. Opening a feed/poll entry focuses its source chat tab. Live tally/countdown changes update the card without adding chat spam; see [voting.md](voting.md).
 
@@ -411,7 +411,7 @@ The central loop is: reconcile controls and run allowance; fetch relevant unread
 
 Both products document file-based skills: [OpenAI skill documentation](https://learn.chatgpt.com/docs/build-skills) describes `SKILL.md`, supporting scripts, and local discovery; [Claude Code skill documentation](https://code.claude.com/docs/en/skills) describes its skill locations and invocation. Keep common instruction content portable; verify provider-specific installation against installed versions during implementation.
 
-There are also official programmatic paths for a future supervisor: [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode) and [Claude Code programmatic usage](https://code.claude.com/docs/en/headless). These are candidate integration surfaces, not evidence that Cenacle can automatically attach to arbitrary existing interactive terminals. This distinction is our architectural inference. Validate actual CLI options and runtime behavior rather than copying historical flag claims from the notes.
+There are also official programmatic paths for a future supervisor: [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode) and [Claude Code programmatic usage](https://code.claude.com/docs/en/headless). These are candidate integration surfaces, not evidence that Vibeguild can automatically attach to arbitrary existing interactive terminals. This distinction is our architectural inference. Validate actual CLI options and runtime behavior rather than copying historical flag claims from the notes.
 
 Provide a diagnostic command that reports config validity, service connectivity, identity/session status, writable project paths, and provider availability when relevant. It must distinguish verified capabilities from untested ones. Never silently install global skills, rewrite external repository instructions, or store model-account credentials in the project.
 
@@ -444,7 +444,7 @@ The sources are [Codex's notes](../_knowledge/codex_notes.md) and [Claude's note
 | Two agents agreed about tests for the wrong real-world objective | Original brief retained; real coding pilot and human usability feedback |
 | Relayed user preference was treated as authority | Original human-message provenance and explicit owner policy |
 
-The current per-agent inactivity/reporting rule comes from the user's explicit clarification, not automatic inheritance of the earlier two-agent one-hour protocol. Do not inherit global turn-taking or historic CLI limitations as requirements. Cenacle's choices need their own definitions and the user's answers.
+The current per-agent inactivity/reporting rule comes from the user's explicit clarification, not automatic inheritance of the earlier two-agent one-hour protocol. Do not inherit global turn-taking or historic CLI limitations as requirements. Vibeguild's choices need their own definitions and the user's answers.
 
 ## 15. Implementation sequence and acceptance gates
 
@@ -536,7 +536,7 @@ Verify competing appointments cannot create two leads; UUID-preserving resume re
 
 Confirmed answers are recorded in the accompanying question list: scoped autonomy with approval before destructive/external actions; manually started sessions; autonomous judgment about global messages and substantive direct replies; a generic reusable create/join/resume skill with a specific ChatGPT integration deferred; per-agent incoming-chat inactivity defaulting to 60 minutes plus stand-by reporting during long work; role-independent breakdown detection with no review-cycle limits or repeated presence questions; UI global and individual pause/resume at the next checkpoint; separate notes and direct chat in each agent tab; Windows-only v1; a separate coordination folder pointing to code elsewhere; 1-20-agent sizing with 3-4 typical; and agent-created profiles/chats/tasks without routine approval, all clearly visible in the UI. The monitoring layout is confirmed: combined Activity Feed, complete All Chats list with double-click-to-open in-window tabs, and separate Open Tabs list. Separate worktrees with a shared-directory fallback and optional configurable token pause budgets are confirmed. Sleep/pause details, multiple-repository scope, and other convenience preferences can use documented defaults. Immediate-pause controls and agents on different machines are future capabilities with explicit architectural boundaries. Fold subsequent replies into the decision log and revise conflicting sections before deriving implementation tasks. Do not treat silence, example-only settings, or the prior agents' suggestions as user approval.
 
-The user explicitly accepts `cenacle.json` and requests a top-level general-context section read by every joining agent. The implementation uses JSON config and immutable JSON events, CLI/service publication, and readable `.txt` transcript projections. Earlier TOML examples in this design are superseded by the actual JSON schema and README.
+The user explicitly accepts `vibeguild.json` and requests a top-level general-context section read by every joining agent. The implementation uses JSON config and immutable JSON events, CLI/service publication, and readable `.txt` transcript projections. Earlier TOML examples in this design are superseded by the actual JSON schema and README.
 
 Token tracking, a precise context-management skill procedure, and optional configurable pause budgets are confirmed, specified in [context_and_tokens.md](context_and_tokens.md). Exact numeric payload targets remain proposed and token ceilings are chosen per project/run; they do not block specifying incremental reads, bounded recovery, and truthful usage accounting.
 

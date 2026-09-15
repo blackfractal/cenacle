@@ -1,5 +1,5 @@
 @echo off
 setlocal
 pushd "%~dp0"
-python -m cenacle %*
+python -m vibeguild %*
 popd

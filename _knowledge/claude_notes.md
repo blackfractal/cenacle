@@ -218,7 +218,7 @@ whether it was the right thing to measure. Both of us optimised for what was
 gradeable. A reviewer who shares your frame will not tell you the frame is
 wrong.
 
-*Corollary worth carrying into Cenacle:* a multi-agent loop needs a periodic
+*Corollary worth carrying into Vibeguild:* a multi-agent loop needs a periodic
 question from outside it -- "is this still the task?" -- and neither
 participant is well placed to ask it.
 
